@@ -2,19 +2,31 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   X, Upload, Home, DollarSign, MapPin, 
-  BedDouble, Bath, Maximize2, Check, Car, Sofa, Layers, Building 
+  BedDouble, Bath, Maximize2, Check, Car, Sofa, Layers, Building,
+  Tag, Info, Image as ImageIcon
 } from 'lucide-react';
 import { createInmueble, updateInmueble } from '../services/inmuebles.services';
 import { getEdificios } from '../services/edificios.services';
 import { alertSuccess } from './Alert';
 
-const IconInput = ({ icon: Icon, ...props }) => (
-  <div className="relative group">
-    <Icon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={18} />
-    <input 
-      {...props} 
-      className={`w-full pl-12 pr-4 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-blue-500/30 transition-all ${props.className || ''}`}
-    />
+// Componente de Input base actualizado con color dinámico
+const IconInput = ({ icon: Icon, label, color, ...props }) => (
+  <div className="space-y-1.5 group w-full">
+    {label && <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">{label}</label>}
+    <div className="relative">
+      <Icon 
+        className={`absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 transition-colors ${
+          color === 'orange' ? 'group-focus-within:text-orange-500' : 'group-focus-within:text-blue-500'
+        }`} 
+        size={18} 
+      />
+      <input 
+        {...props} 
+        className={`w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent rounded-[1.25rem] text-sm font-bold text-slate-700 outline-none transition-all placeholder:text-slate-300 ${
+          color === 'orange' ? 'focus:bg-white focus:border-orange-500/30' : 'focus:bg-white focus:border-blue-500/30'
+        } ${props.className || ''}`}
+      />
+    </div>
   </div>
 );
 
@@ -27,9 +39,8 @@ const InmuebleModal = ({ inmueble, edificio, onClose, onSaved }) => {
   const [form, setForm] = useState({
     titulo: '',
     precio: '',
-    tipo: 'venta',
-    estado: 'Disponible',
-    edificioId: '', // Se llenará en el useEffect
+    estado: 'Venta', 
+    edificioId: '',
     unidad: '',
     piso: '',
     habitaciones: '',
@@ -43,259 +54,261 @@ const InmuebleModal = ({ inmueble, edificio, onClose, onSaved }) => {
     amoblado: false,
   });
 
-  // 1. Sincronizar el ID del edificio inmediatamente
-  useEffect(() => {
-    if (edificio?.id) {
-      setForm(prev => ({ ...prev, edificioId: edificio.id }));
-    }
-  }, [edificio]);
+  const esArriendo = form.estado === 'Arriendo';
+  const colorTema = esArriendo ? 'orange' : 'blue';
 
-  const isFormValid = () => {
-    // Si viene de edificio, el ID ya está garantizado por la prop
-    const hasEdificio = edificio?.id || form.edificioId !== '';
-    return form.unidad.trim() !== '' && form.precio !== '' && hasEdificio;
+  const formatDisplayPrice = (val) => {
+    if (!val) return '';
+    const num = val.toString().replace(/\D/g, '');
+    return new Intl.NumberFormat('es-CO').format(num);
+  };
+
+  const handlePriceChange = (e) => {
+    const rawValue = e.target.value.replace(/\D/g, '');
+    setForm({ ...form, precio: rawValue });
   };
 
   useEffect(() => {
     const loadData = async () => {
-      if (!edificio) {
-        const eds = await getEdificios();
-        setEdificios(eds);
-      }
-
-      if (inmueble) {
-        setForm({
-          ...inmueble,
-          precio: inmueble.precio?.toString() || '',
-          piso: inmueble.piso?.toString() || '',
-          habitaciones: inmueble.habitaciones?.toString() || '',
-          baños: inmueble.baños?.toString() || '',
-          area: inmueble.area?.toString() || '',
-          estrato: inmueble.estrato?.toString() || '',
-          // Aseguramos que el edificioId se mantenga si estamos editando
-          edificioId: inmueble.edificioId || edificio?.id || '',
-        });
-        
-        if (inmueble.fotos) {
-          setPreviews(inmueble.fotos);
-          setFiles(inmueble.fotos);
+      try {
+        if (!edificio) {
+          const eds = await getEdificios();
+          setEdificios(eds || []);
         }
-      }
+        if (inmueble) {
+          setForm({
+            ...inmueble,
+            precio: inmueble.precio?.toString() || '',
+            piso: inmueble.piso?.toString() || '',
+            habitaciones: inmueble.habitaciones?.toString() || '',
+            baños: inmueble.baños?.toString() || '',
+            area: inmueble.area?.toString() || '',
+            estrato: inmueble.estrato?.toString() || '',
+            estado: inmueble.estado || 'Venta',
+            edificioId: inmueble.edificioId || edificio?.id || '',
+          });
+          if (inmueble.fotos) {
+            setPreviews(inmueble.fotos);
+            setFiles(inmueble.fotos);
+          }
+        } else if (edificio) {
+          setForm(prev => ({ ...prev, edificioId: edificio.id }));
+        }
+      } catch (err) { console.error(err); }
     };
     loadData();
   }, [inmueble, edificio]);
 
-  const handleImagesChange = (e) => {
-    const selectedFiles = Array.from(e.target.files);
-    const newPreviews = selectedFiles.map(file => URL.createObjectURL(file));
-    setPreviews(prev => [...prev, ...newPreviews]);
-    setFiles(prev => [...prev, ...selectedFiles]);
-  };
-
-  const removeImage = (index) => {
-    setPreviews(prev => prev.filter((_, i) => i !== index));
-    setFiles(prev => prev.filter((_, i) => i !== index));
-  };
+  const isFormValid = () => (edificio?.id || form.edificioId) && form.unidad && form.precio;
 
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
-    
-    // 2. Prioridad absoluta al ID del edificio pasado por prop
-    const finalEdificioId = edificio?.id || form.edificioId;
-    
-    if (!finalEdificioId) {
-      console.error("No se puede guardar: Falta ID del edificio");
-      return;
-    }
-
     setLoading(true);
-    const edificioInfo = edificio || edificios.find(ed => ed.id === finalEdificioId);
-
-    const nombreFinal = form.titulo.trim() !== '' 
-      ? form.titulo 
-      : `Apartamento ${form.unidad} - ${edificioInfo?.nombre || 'Inmueble'}`;
+    const finalId = edificio?.id || form.edificioId;
+    const edificioInfo = edificio || edificios.find(ed => ed.id === finalId);
 
     const dataToSend = {
       ...form,
-      edificioId: String(finalEdificioId), // 3. Forzamos String para que el filtro de Firebase funcione
-      titulo: nombreFinal,
+      edificioId: String(finalId),
+      titulo: form.titulo || `Apto ${form.unidad} - ${edificioInfo?.nombre || 'Inmueble'}`,
       precio: Number(form.precio) || 0,
-      piso: Number(form.piso) || null,
-      habitaciones: Number(form.habitaciones) || 0,
-      baños: Number(form.baños) || 0,
       nombreEdificio: edificioInfo?.nombre || '',
     };
 
     try {
       if (inmueble) {
         await updateInmueble(inmueble.id, dataToSend, files);
-        alertSuccess('Actualizado', 'Inmueble actualizado correctamente');
+        alertSuccess('Actualizado', 'Unidad modificada');
       } else {
         await createInmueble(dataToSend, files);
-        alertSuccess('Creado', 'Inmueble registrado correctamente');
+        alertSuccess('Creado', 'Nueva unidad registrada');
       }
       onSaved();
       onClose();
-    } catch (error) {
-      console.error("Error al guardar inmueble:", error);
-    } finally {
-      setLoading(false);
-    }
+    } catch (error) { console.error(error); } 
+    finally { setLoading(false); }
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-      <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-fadeIn">
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-0 md:p-6 bg-slate-900/40 backdrop-blur-md">
+      <div className="bg-white w-full max-w-5xl md:rounded-[3rem] shadow-2xl overflow-hidden flex flex-col max-h-screen md:max-h-[95vh]">
         
         {/* HEADER */}
-        <div className="flex justify-between items-center px-8 py-6 border-b border-slate-100 bg-white">
-          <div>
-            <h3 className="text-xl font-black text-slate-800">
-              {inmueble ? 'Editar Unidad' : 'Nueva Unidad'} {form.unidad && `#${form.unidad}`}
-            </h3>
-            {edificio && (
-              <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest flex items-center gap-1 mt-1">
-                <Building size={12} /> {edificio.nombre}
-              </p>
-            )}
+        <div className="px-8 py-6 border-b border-slate-50 flex justify-between items-center bg-white">
+          <div className="flex items-center gap-4">
+            <div className={`p-3.5 rounded-2xl ${esArriendo ? 'bg-orange-500' : 'bg-blue-600'} text-white shadow-lg transition-all duration-500`}>
+              <Building size={22} />
+            </div>
+            <div>
+              <h3 className="text-xl font-black text-slate-900 tracking-tighter">
+                {inmueble ? 'Editar Unidad' : 'Registrar Propiedad'}
+              </h3>
+            </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-            <X size={24} className="text-slate-400" />
-          </button>
+          <button onClick={onClose} className="p-3 hover:bg-slate-100 rounded-2xl transition-all"><X size={24} /></button>
         </div>
 
-        <form className="overflow-y-auto p-8 space-y-6">
-          
-          {/* GALERÍA */}
-          <div className="space-y-3">
-            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Galería de fotos</h4>
-            <div className="grid grid-cols-4 gap-3">
-              {previews.map((url, index) => (
-                <div key={index} className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 group">
-                  <img src={url} className="w-full h-full object-cover" alt="Preview" />
-                  <button 
-                    type="button" 
-                    onClick={() => removeImage(index)} 
-                    className="absolute top-1 right-1 p-1 bg-rose-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+        <div className="flex-1 overflow-y-auto bg-slate-50/30">
+          <div className="p-6 md:p-10 grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            {/* IZQUIERDA: SELECTOR Y FOTOS */}
+            <div className="lg:col-span-5 space-y-6">
+              <div className="bg-white p-2 rounded-[2rem] shadow-sm border border-slate-100 flex gap-2">
+                {['Venta', 'Arriendo'].map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setForm({ ...form, estado: mode })}
+                    className={`flex-1 py-4 rounded-[1.5rem] font-black text-[11px] uppercase tracking-widest transition-all ${
+                      form.estado === mode 
+                      ? (mode === 'Venta' ? 'bg-blue-600 text-white shadow-lg' : 'bg-orange-500 text-white shadow-lg') 
+                      : 'text-slate-400 hover:bg-slate-50'
+                    }`}
                   >
-                    <X size={12} />
+                    {mode}
                   </button>
+                ))}
+              </div>
+
+              <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-4">
+                 <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2"><ImageIcon size={16}/> Galería</h4>
+                 <div className="grid grid-cols-3 gap-3">
+                    {previews.map((url, index) => (
+                      <div key={index} className="relative aspect-square rounded-2xl overflow-hidden border border-slate-100 group">
+                        <img src={url} className="w-full h-full object-cover" alt="Preview" />
+                        <button type="button" onClick={() => {
+                          setPreviews(previews.filter((_, i) => i !== index));
+                          setFiles(files.filter((_, i) => i !== index));
+                        }} className="absolute inset-0 bg-rose-500/80 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all"><X size={20}/></button>
+                      </div>
+                    ))}
+                    <label className={`aspect-square rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center cursor-pointer transition-all ${esArriendo ? 'hover:bg-orange-50' : 'hover:bg-blue-50'}`}>
+                      <input type="file" multiple className="hidden" accept="image/*" onChange={(e) => {
+                        const sFiles = Array.from(e.target.files);
+                        setPreviews(prev => [...prev, ...sFiles.map(f => URL.createObjectURL(f))]);
+                        setFiles(prev => [...prev, ...sFiles]);
+                      }} />
+                      <Upload size={20} className="text-slate-300" />
+                    </label>
+                 </div>
+              </div>
+            </div>
+
+            {/* DERECHA: FORMULARIO */}
+            <div className="lg:col-span-7 space-y-6">
+              
+              <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* UNIDAD */}
+                  <div className="space-y-2">
+                    <label className={`text-[10px] font-black ${esArriendo ? 'text-orange-500' : 'text-blue-600'} uppercase tracking-widest ml-2`}>Unidad</label>
+                    <div className="relative group">
+                      <Home className={`absolute left-4 top-1/2 -translate-y-1/2 ${esArriendo ? 'text-orange-500' : 'text-blue-500'}`} size={20} />
+                      <input 
+                        value={form.unidad} 
+                        onChange={e => setForm({ ...form, unidad: e.target.value })} 
+                        placeholder="Ej: 402-A" 
+                        className={`w-full pl-12 pr-4 py-5 border-2 border-transparent rounded-2xl text-lg font-black text-slate-800 outline-none transition-all ${
+                          esArriendo ? 'bg-orange-50/30 focus:bg-white focus:border-orange-500' : 'bg-blue-50/30 focus:bg-white focus:border-blue-500'
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  {/* PRECIO CON FORMATEO */}
+                  <div className="space-y-2">
+                    <label className={`text-[10px] font-black ${esArriendo ? 'text-emerald-600' : 'text-emerald-500'} uppercase tracking-widest ml-2`}>
+                      {esArriendo ? 'Precio Canon' : 'Precio de Venta'}
+                    </label>
+                    <div className="relative group">
+                      <span className={`absolute left-5 top-1/2 -translate-y-1/2 font-bold text-xl ${esArriendo ? 'text-emerald-600' : 'text-emerald-500'}`}>$</span>
+                      <input 
+                        type="text" 
+                        value={formatDisplayPrice(form.precio)} 
+                        onChange={handlePriceChange}
+                        placeholder="0" 
+                        className={`w-full pl-10 pr-4 py-5 border-2 border-transparent rounded-2xl text-xl font-black text-slate-800 outline-none transition-all ${
+                          esArriendo ? 'bg-orange-50/30 focus:bg-white focus:border-orange-500' : 'bg-emerald-50/30 focus:bg-white focus:border-emerald-500'
+                        }`}
+                      />
+                      {esArriendo && <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-emerald-600">/ MES</span>}
+                    </div>
+                  </div>
                 </div>
-              ))}
-              <label className="aspect-square rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 hover:border-blue-400 transition-all group">
-                <input type="file" multiple className="hidden" accept="image/*" onChange={handleImagesChange} />
-                <Upload size={20} className="text-slate-400 group-hover:text-blue-500" />
-                <span className="text-[8px] font-bold text-slate-400 mt-1 uppercase">Subir</span>
-              </label>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-6 border-t border-slate-50">
+                  <IconInput icon={Layers} color={colorTema} label="Piso" type="number" value={form.piso} onChange={e => setForm({ ...form, piso: e.target.value })} />
+                  <IconInput icon={BedDouble} color={colorTema} label="Hab." type="number" value={form.habitaciones} onChange={e => setForm({ ...form, habitaciones: e.target.value })} />
+                  <IconInput icon={Bath} color={colorTema} label="Baños" type="number" value={form.baños} onChange={e => setForm({ ...form, baños: e.target.value })} />
+                  <IconInput icon={Maximize2} color={colorTema} label="m²" type="number" value={form.area} onChange={e => setForm({ ...form, area: e.target.value })} />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Edificio</label>
+                    <div className="relative">
+                      <Building className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                      <select
+                        value={form.edificioId}
+                        onChange={e => setForm({ ...form, edificioId: e.target.value })}
+                        className={`w-full pl-12 pr-4 py-4 bg-white border-2 border-slate-100 rounded-[1.25rem] text-sm font-bold outline-none transition-all appearance-none ${
+                          esArriendo ? 'focus:border-orange-500' : 'focus:border-blue-500'
+                        }`}
+                      >
+                        <option value="">Seleccionar...</option>
+                        {edificios.map(ed => <option key={ed.id} value={ed.id}>{ed.nombre}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <IconInput icon={MapPin} color={colorTema} label="Barrio" value={form.barrio} onChange={e => setForm({ ...form, barrio: e.target.value })} />
+                </div>
+
+                <div className="flex gap-4">
+                  <button type="button" onClick={() => setForm(p => ({...p, parqueadero: !p.parqueadero}))} 
+                    className={`flex-1 py-4 rounded-2xl border-2 font-black text-[10px] uppercase tracking-widest transition-all ${
+                      form.parqueadero 
+                      ? (esArriendo ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-blue-500 bg-blue-50 text-blue-700') 
+                      : 'bg-white text-slate-400 border-slate-100'
+                    }`}>PARQUEADERO</button>
+                  
+                  <button type="button" onClick={() => setForm(p => ({...p, amoblado: !p.amoblado}))} 
+                    className={`flex-1 py-4 rounded-2xl border-2 font-black text-[10px] uppercase tracking-widest transition-all ${
+                      form.amoblado 
+                      ? (esArriendo ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-blue-500 bg-blue-50 text-blue-700') 
+                      : 'bg-white text-slate-400 border-slate-100'
+                    }`}>AMOBLADO</button>
+                </div>
+
+                <textarea
+                  value={form.descripcion}
+                  onChange={e => setForm({ ...form, descripcion: e.target.value })}
+                  rows="3"
+                  placeholder="Descripción comercial..."
+                  className={`w-full p-6 bg-white border border-slate-100 rounded-[2rem] text-sm font-medium outline-none transition-all resize-none ${
+                    esArriendo ? 'focus:border-orange-500' : 'focus:border-blue-500'
+                  }`}
+                />
+              </div>
             </div>
           </div>
+        </div>
 
-          <div className="space-y-4">
-            {/* FILA: EDIFICIO / UNIDAD / PISO */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {!edificio ? (
-                <div className="md:col-span-1 relative group">
-                  <Building className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={18} />
-                  <select
-                    value={form.edificioId}
-                    onChange={e => setForm({ ...form, edificioId: e.target.value })}
-                    className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-blue-500/30 transition-all appearance-none"
-                  >
-                    <option value="">Edificio *</option>
-                    {edificios.map(ed => <option key={ed.id} value={ed.id}>{ed.nombre}</option>)}
-                  </select>
-                </div>
-              ) : (
-                <div className="md:col-span-1">
-                   <div className="w-full px-5 py-3.5 bg-blue-50/50 border-2 border-blue-100/20 rounded-2xl text-sm font-bold text-blue-600 flex items-center gap-2">
-                     <Building size={18} />
-                     <span className="truncate">{edificio.nombre}</span>
-                   </div>
-                </div>
-              )}
-
-              <IconInput 
-                icon={Home} 
-                value={form.unidad} 
-                onChange={e => setForm({ ...form, unidad: e.target.value })} 
-                placeholder="Unidad/Apto *" 
-              />
-              <IconInput 
-                icon={Layers} 
-                type="number"
-                value={form.piso} 
-                onChange={e => setForm({ ...form, piso: e.target.value })} 
-                placeholder="Piso" 
-              />
-            </div>
-
-            <IconInput 
-              icon={Home} 
-              value={form.titulo} 
-              onChange={e => setForm({ ...form, titulo: e.target.value })} 
-              placeholder="Título del anuncio (Opcional)"
-            />
-
-            <div className="grid grid-cols-2 gap-4">
-              <IconInput 
-                icon={DollarSign} 
-                type="number" 
-                value={form.precio} 
-                onChange={e => setForm({ ...form, precio: e.target.value })} 
-                placeholder="Precio *"
-              />
-              <IconInput icon={MapPin} value={form.barrio} onChange={e => setForm({ ...form, barrio: e.target.value })} placeholder="Barrio" />
-            </div>
-
-            <div className="grid grid-cols-3 gap-3">
-              <IconInput icon={BedDouble} type="number" placeholder="Hab." value={form.habitaciones} onChange={e => setForm({...form, habitaciones: e.target.value})} />
-              <IconInput icon={Bath} type="number" placeholder="Baños" value={form.baños} onChange={e => setForm({...form, baños: e.target.value})} />
-              <IconInput icon={Maximize2} type="number" placeholder="m²" value={form.area} onChange={e => setForm({...form, area: e.target.value})} />
-            </div>
-
-            <div className="flex gap-3">
-              <button 
-                type="button" 
-                onClick={() => setForm(p => ({...p, parqueadero: !p.parqueadero}))}
-                className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl border-2 transition-all font-black text-[10px] uppercase ${form.parqueadero ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-100 text-slate-400'}`}
-              >
-                <Car size={16} /> Parqueadero
-              </button>
-              <button 
-                type="button" 
-                onClick={() => setForm(p => ({...p, amoblado: !p.amoblado}))}
-                className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl border-2 transition-all font-black text-[10px] uppercase ${form.amoblado ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-100 text-slate-400'}`}
-              >
-                <Sofa size={16} /> Amoblado
-              </button>
-            </div>
-
-            <textarea
-              value={form.descripcion}
-              onChange={e => setForm({ ...form, descripcion: e.target.value })}
-              rows="3"
-              placeholder="Descripción adicional del inmueble..."
-              className="w-full p-4 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-medium outline-none focus:bg-white focus:border-blue-500/30 transition-all resize-none"
-            />
-          </div>
-        </form>
-
-        {/* FOOTER ACCIONES */}
-        <div className="p-6 border-t border-slate-100 flex gap-3 bg-white">
-          <button type="button" onClick={onClose} className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-colors">
-            Cancelar
-          </button>
+        {/* FOOTER */}
+        <div className="p-8 border-t border-slate-50 flex gap-4 bg-white">
+          <button type="button" onClick={onClose} className="flex-1 py-5 bg-slate-50 text-slate-500 rounded-[1.5rem] font-bold text-[11px] tracking-widest uppercase">Cancelar</button>
           <button
             type="button"
             onClick={handleSubmit}
             disabled={loading || !isFormValid()}
-            className={`flex-[2] py-4 rounded-2xl font-black flex justify-center items-center gap-2 transition-all ${
+            className={`flex-[2] py-5 rounded-[1.5rem] font-black transition-all text-[11px] tracking-widest uppercase ${
               !isFormValid() || loading 
-              ? 'bg-slate-200 text-slate-400 cursor-not-allowed' 
-              : 'bg-slate-900 text-white shadow-xl shadow-slate-200 hover:bg-black active:scale-95'
+              ? 'bg-slate-200 text-slate-400' 
+              : (esArriendo ? 'bg-orange-600 text-white shadow-xl shadow-orange-100' : 'bg-slate-900 text-white shadow-xl shadow-slate-200')
             }`}
           >
-            {loading ? 'Guardando...' : <><Check size={20} /> Guardar Unidad {form.unidad}</>}
+            {loading ? 'Guardando...' : 'Guardar Propiedad'}
           </button>
         </div>
       </div>

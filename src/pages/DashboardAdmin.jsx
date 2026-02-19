@@ -2,10 +2,10 @@ import React, { useEffect, useState } from 'react';
 import {
   LayoutDashboard, Building2, Users, Home,
   ShieldCheck, CheckCircle, AlertCircle,
-  FileText, Droplets, LogOut, Search, Bell, ChevronRight
+  FileText, Droplets, LogOut, Search, Bell, ChevronRight, Menu, X
 } from 'lucide-react';
 
-// Importación de tus componentes (Mantenemos tu lógica)
+// Importación de tus componentes
 import EdificiosPage from './EdificiosPage.jsx';
 import UsuariosPage from './UsuariosPage.jsx';
 import InmueblePage from './InmueblePage.jsx';
@@ -26,10 +26,9 @@ const DashboardAdmin = () => {
   const [selectedEdificio, setSelectedEdificio] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Estado para el menú móvil
   
-  // Estado para la fecha actual
   const [today] = useState(new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }));
-
   const navigate = useNavigate();
 
   const [stats, setStats] = useState({
@@ -97,33 +96,48 @@ const DashboardAdmin = () => {
   }
 
   return (
-    <div className="flex h-screen bg-[#F8FAFC] font-sans text-slate-900 overflow-hidden">
+    <div className="flex h-screen bg-[#F8FAFC] font-sans text-slate-900 overflow-hidden relative">
+      
+      {/* 📱 OVERLAY MÓVIL */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[50] lg:hidden transition-opacity duration-300"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
 
-      {/* 🌑 SIDEBAR PROFESIONAL */}
-      <aside className="w-72 bg-slate-950 text-slate-400 flex flex-col shadow-2xl z-20 transition-all duration-300">
-        {/* Brand */}
-        <div className="h-20 flex items-center px-8 border-b border-slate-800/50">
+      {/* 🌑 SIDEBAR RESPONSIVO */}
+      <aside className={`
+        fixed inset-y-0 left-0 z-[60] w-72 bg-slate-950 text-slate-400 flex flex-col shadow-2xl 
+        transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0
+        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}>
+        {/* Brand & Close Button for mobile */}
+        <div className="h-20 flex items-center justify-between px-8 border-b border-slate-800/50">
           <div className="flex items-center gap-3 text-white">
-            <div className="bg-gradient-to-tr from-blue-600 to-indigo-500 p-2 rounded-lg shadow-lg shadow-blue-500/20">
+            <div className="bg-gradient-to-tr from-blue-600 to-indigo-500 p-2 rounded-lg shadow-lg">
               <ShieldCheck size={20} className="text-white" />
             </div>
             <span className="text-xl font-bold tracking-tight">Admin<span className="text-blue-500">Panel</span></span>
           </div>
+          <button className="lg:hidden text-slate-400" onClick={() => setIsSidebarOpen(false)}>
+            <X size={24} />
+          </button>
         </div>
 
         {/* Navigation */}
         <nav className="flex-1 px-4 py-8 space-y-1 overflow-y-auto custom-scrollbar">
           <p className="px-4 text-xs font-bold text-slate-600 uppercase tracking-widest mb-2">Principal</p>
-          <NavItem icon={<LayoutDashboard />} label="Resumen General" active={activeTab === 'dashboard'} onClick={() => { setActiveTab('dashboard'); setSelectedEdificio(null); }} />
+          <NavItem icon={<LayoutDashboard />} label="Resumen" active={activeTab === 'dashboard'} onClick={() => { setActiveTab('dashboard'); setSelectedEdificio(null); setIsSidebarOpen(false); }} />
           
           <p className="px-4 text-xs font-bold text-slate-600 uppercase tracking-widest mt-6 mb-2">Gestión</p>
-          <NavItem icon={<Building2 />} label="Edificios" active={activeTab === 'edificios'} onClick={() => setActiveTab('edificios')} />
-          <NavItem icon={<Users />} label="Usuarios" active={activeTab === 'usuarios'} onClick={() => setActiveTab('usuarios')} />
-          <NavItem icon={<Home />} label="Inmuebles" active={activeTab === 'inmuebles'} onClick={() => setActiveTab('inmuebles')} />
+          <NavItem icon={<Building2 />} label="Edificios" active={activeTab === 'edificios'} onClick={() => { setActiveTab('edificios'); setIsSidebarOpen(false); }} />
+          <NavItem icon={<Users />} label="Usuarios" active={activeTab === 'usuarios'} onClick={() => { setActiveTab('usuarios'); setIsSidebarOpen(false); }} />
+          <NavItem icon={<Home />} label="Inmuebles" active={activeTab === 'inmuebles'} onClick={() => { setActiveTab('inmuebles'); setIsSidebarOpen(false); }} />
           
-          <p className="px-4 text-xs font-bold text-slate-600 uppercase tracking-widest mt-6 mb-2">Finanzas & Docs</p>
-          <NavItem icon={<Droplets />} label="Consumos" active={activeTab === 'consumos'} onClick={() => setActiveTab('consumos')} />
-          <NavItem icon={<FileText />} label="Documentación" active={activeTab === 'documentos'} onClick={() => setActiveTab('documentos')} />
+          <p className="px-4 text-xs font-bold text-slate-600 uppercase tracking-widest mt-6 mb-2">Finanzas</p>
+          <NavItem icon={<Droplets />} label="Consumos" active={activeTab === 'consumos'} onClick={() => { setActiveTab('consumos'); setIsSidebarOpen(false); }} />
+          <NavItem icon={<FileText />} label="Documentos" active={activeTab === 'documentos'} onClick={() => { setActiveTab('documentos'); setIsSidebarOpen(false); }} />
         </nav>
 
         {/* User Footer */}
@@ -138,29 +152,37 @@ const DashboardAdmin = () => {
       {/* ☀️ MAIN CONTENT */}
       <main className="flex-1 flex flex-col h-full relative overflow-hidden">
         
-        {/* Top Header Glassmorphism */}
-        <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200/60 flex items-center justify-between px-8 sticky top-0 z-10">
-          <div>
-            <h2 className="text-xl font-bold text-slate-800 capitalize">
-              {activeTab === 'dashboard' && !selectedEdificio ? 'Panel de Control' : 
-               selectedEdificio ? `Gestión: ${selectedEdificio.nombre}` :
-               activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
-            </h2>
-            <p className="text-xs text-slate-400 font-medium capitalize">{today}</p>
+        {/* Top Header */}
+        <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200/60 flex items-center justify-between px-4 md:px-8 sticky top-0 z-40">
+          <div className="flex items-center gap-4">
+            {/* Hamburger Button */}
+            <button 
+              className="lg:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+              onClick={() => setIsSidebarOpen(true)}
+            >
+              <Menu size={24} />
+            </button>
+            <div className="hidden sm:block">
+              <h2 className="text-lg md:text-xl font-bold text-slate-800 truncate max-w-[200px] md:max-w-none">
+                {activeTab === 'dashboard' && !selectedEdificio ? 'Panel de Control' : 
+                 selectedEdificio ? selectedEdificio.nombre :
+                 activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+              </h2>
+              <p className="text-[10px] md:text-xs text-slate-400 font-medium capitalize">{today}</p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-6">
-            <button className="relative p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all">
+          <div className="flex items-center gap-2 md:gap-6">
+            <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all">
               <Bell size={20} />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
             </button>
             
-            <div className="flex items-center gap-3 pl-6 border-l border-slate-200 h-10">
-              <div className="text-right hidden md:block">
+            <div className="flex items-center gap-3 pl-4 md:pl-6 border-l border-slate-200 h-10">
+              <div className="text-right hidden lg:block">
                 <p className="text-sm font-bold text-slate-700">{currentUser?.nombre} {currentUser?.apellido}</p>
-                <p className="text-[10px] text-blue-500 font-bold uppercase tracking-wider">Administrador</p>
+                <p className="text-[10px] text-blue-500 font-bold uppercase tracking-wider">Admin</p>
               </div>
-              <div className="h-10 w-10 rounded-full bg-gradient-to-br from-slate-800 to-slate-900 text-white flex items-center justify-center font-bold shadow-md ring-2 ring-white">
+              <div className="h-9 w-9 md:h-10 md:w-10 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold shadow-md">
                 {currentUser?.nombre?.charAt(0)}
               </div>
             </div>
@@ -168,116 +190,66 @@ const DashboardAdmin = () => {
         </header>
 
         {/* Scrollable Area */}
-        <div className="flex-1 overflow-y-auto p-8 scroll-smooth">
-          <div className="max-w-7xl mx-auto space-y-8 animate-fadeIn">
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth">
+          <div className="max-w-7xl mx-auto space-y-6 md:space-y-8 animate-fadeIn">
 
             {activeTab === 'dashboard' && (
               <>
                 {!selectedEdificio ? (
-                  <div className="space-y-10">
-                    {/* KPI CARDS */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                      <KPICard 
-                        title="Total Edificios" 
-                        value={stats.totalEdificios} 
-                        icon={<Building2 size={24} />} 
-                        color="blue"
-                        trend="+2 este mes"
-                      />
-                      <KPICard 
-                        title="Residentes Totales" 
-                        value={stats.totalUsuarios} 
-                        icon={<Users size={24} />} 
-                        color="indigo"
-                        trend="Base de datos global"
-                      />
-                      <KPICard 
-                        title="Usuarios Activos" 
-                        value={stats.activos} 
-                        icon={<CheckCircle size={24} />} 
-                        color="emerald"
-                        trend="Acceso permitido"
-                      />
-                      <KPICard 
-                        title="Pendientes" 
-                        value={stats.pendientes} 
-                        icon={<AlertCircle size={24} />} 
-                        color="amber"
-                        trend="Requieren aprobación"
-                      />
+                  <div className="space-y-8 md:space-y-10">
+                    {/* KPI CARDS - Responsivo 1, 2 o 4 columnas */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                      <KPICard title="Edificios" value={stats.totalEdificios} icon={<Building2 size={22} />} color="blue" trend="+2 este mes" />
+                      <KPICard title="Residentes" value={stats.totalUsuarios} icon={<Users size={22} />} color="indigo" trend="Global" />
+                      <KPICard title="Activos" value={stats.activos} icon={<CheckCircle size={22} />} color="emerald" trend="Acceso OK" />
+                      <KPICard title="Pendientes" value={stats.pendientes} icon={<AlertCircle size={22} />} color="amber" trend="Por aprobar" />
                     </div>
 
-                    {/* BUILDING SELECTOR GRID */}
+                    {/* SECCIÓN EDIFICIOS */}
                     <div>
-                      <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-lg font-bold text-slate-800">Comunicaciones y Muros</h3>
-                        <div className="relative">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+                        <h3 className="text-lg font-bold text-slate-800">Muros de la Comunidad</h3>
+                        <div className="relative w-full sm:w-64">
                           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                           <input 
                             type="text" 
                             placeholder="Buscar edificio..." 
-                            className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-100 outline-none w-64 transition-all"
+                            className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-100 transition-all"
                           />
                         </div>
                       </div>
 
-                      {edificios.length === 0 ? (
-                        <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-slate-200">
-                          <Building2 size={48} className="mx-auto text-slate-200 mb-4" />
-                          <p className="text-slate-400 font-medium">No hay edificios registrados aún.</p>
-                        </div>
-                      ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                          {edificios.map((edificio) => (
-                            <div 
-                              key={edificio.id}
-                              onClick={() => setSelectedEdificio(edificio)}
-                              className="group bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer relative overflow-hidden"
-                            >
-                              <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-bl-[4rem] -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
-                              
-                              <div className="relative z-10 flex items-start justify-between mb-4">
-                                <div className="p-3 bg-slate-50 text-slate-600 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                                  <Building2 size={24} />
-                                </div>
-                                <span className="p-2 bg-slate-50 rounded-full text-slate-300 group-hover:text-blue-500 transition-colors">
-                                  <ChevronRight size={16} />
-                                </span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                        {edificios.map((edificio) => (
+                          <div 
+                            key={edificio.id}
+                            onClick={() => setSelectedEdificio(edificio)}
+                            className="group bg-white p-5 md:p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-xl transition-all cursor-pointer relative overflow-hidden"
+                          >
+                            <div className="flex items-start justify-between mb-4 relative z-10">
+                              <div className="p-3 bg-slate-50 text-slate-600 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                <Building2 size={24} />
                               </div>
-                              
-                              <h4 className="relative z-10 text-lg font-bold text-slate-800 mb-1 group-hover:text-blue-600 transition-colors">
-                                {edificio.nombre}
-                              </h4>
-                              <p className="relative z-10 text-xs text-slate-400 font-medium">
-                                {edificio.direccion || 'Ubicación no registrada'}
-                              </p>
+                              <ChevronRight className="text-slate-300 group-hover:text-blue-500 transition-colors" size={20} />
                             </div>
-                          ))}
-                        </div>
-                      )}
+                            <h4 className="font-bold text-slate-800 mb-1 truncate group-hover:text-blue-600 transition-colors">{edificio.nombre}</h4>
+                            <p className="text-xs text-slate-400 truncate">{edificio.direccion || 'Sin dirección'}</p>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 ) : (
-                  // VISTA DETALLE DE MURO
                   <div className="animate-fadeIn">
-                    <button 
-                      onClick={() => setSelectedEdificio(null)}
-                      className="mb-6 flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-blue-600 transition-colors"
-                    >
-                      <ChevronRight className="rotate-180" size={16} /> Volver al tablero
+                    <button onClick={() => setSelectedEdificio(null)} className="mb-6 flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-blue-600">
+                      <ChevronRight className="rotate-180" size={16} /> Volver
                     </button>
-                    
-                    <div className="bg-white rounded-[2rem] shadow-lg shadow-slate-200/50 border border-slate-100 overflow-hidden">
-                      <div className="bg-slate-50 px-8 py-6 border-b border-slate-100 flex justify-between items-center">
-                        <div>
-                          <h3 className="text-xl font-black text-slate-800">{selectedEdificio.nombre}</h3>
-                          <p className="text-sm text-slate-500">Muro de comunicaciones y reportes</p>
-                        </div>
-                        <span className="bg-blue-100 text-blue-700 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">
-                          En vivo
-                        </span>
+                    <div className="bg-white rounded-[1.5rem] md:rounded-[2rem] shadow-xl border border-slate-100 overflow-hidden">
+                      <div className="bg-slate-50 px-6 py-4 md:px-8 md:py-6 border-b border-slate-100">
+                        <h3 className="text-lg md:text-xl font-black text-slate-800">{selectedEdificio.nombre}</h3>
+                        <p className="text-xs md:text-sm text-slate-500 font-medium">Panel de comunicaciones</p>
                       </div>
-                      <div className="p-2">
+                      <div className="p-2 md:p-4">
                         <MuroComunidad edificios={[selectedEdificio]} currentUser={currentUser} />
                       </div>
                     </div>
@@ -286,7 +258,7 @@ const DashboardAdmin = () => {
               </>
             )}
 
-            {/* OTRAS PÁGINAS RENDERIZADAS AQUÍ */}
+            {/* OTRAS PÁGINAS */}
             <div className={activeTab === 'dashboard' ? 'hidden' : 'block animate-fadeIn'}>
                {activeTab === 'edificios' && <EdificiosPage />}
                {activeTab === 'usuarios' && <UsuariosPage />}
@@ -294,7 +266,6 @@ const DashboardAdmin = () => {
                {activeTab === 'documentos' && <DocumentsPage />}
                {activeTab === 'consumos' && <ConsumosPage edificios={edificios} />}
             </div>
-
           </div>
         </div>
       </main>
@@ -302,54 +273,37 @@ const DashboardAdmin = () => {
   );
 };
 
-// --- COMPONENTES UI REUTILIZABLES ---
+// --- COMPONENTES UI ---
 
 const NavItem = ({ icon, label, active, onClick }) => (
   <button
     onClick={onClick}
-    className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-sm font-medium transition-all duration-200 group ${
-      active
-        ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50'
-        : 'text-slate-400 hover:bg-slate-900 hover:text-white'
+    className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl text-sm font-medium transition-all group ${
+      active ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' : 'text-slate-400 hover:bg-white/5 hover:text-white'
     }`}
   >
-    <span className={`transition-colors ${active ? 'text-white' : 'text-slate-500 group-hover:text-white'}`}>
-      {React.cloneElement(icon, { size: 20 })}
+    <span className={active ? 'text-white' : 'text-slate-500 group-hover:text-white'}>
+      {React.cloneElement(icon, { size: 18 })}
     </span>
     {label}
-    {active && <div className="ml-auto w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>}
   </button>
 );
 
 const KPICard = ({ title, value, icon, color, trend }) => {
-  const colorMap = {
-    blue: 'bg-blue-50 text-blue-600 border-blue-100',
-    indigo: 'bg-indigo-50 text-indigo-600 border-indigo-100',
-    emerald: 'bg-emerald-50 text-emerald-600 border-emerald-100',
-    amber: 'bg-amber-50 text-amber-600 border-amber-100',
+  const colors = {
+    blue: 'bg-blue-50 text-blue-600',
+    indigo: 'bg-indigo-50 text-indigo-600',
+    emerald: 'bg-emerald-50 text-emerald-600',
+    amber: 'bg-amber-50 text-amber-600',
   };
-
   return (
-    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+    <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
       <div className="flex justify-between items-start mb-4">
-        <div className={`p-3 rounded-xl ${colorMap[color].split(' ')[0]} ${colorMap[color].split(' ')[1]}`}>
-          {icon}
-        </div>
-        {/* Placeholder chart sparkline */}
-        <div className="flex gap-0.5 items-end h-8 opacity-30">
-           <div className={`w-1 bg-current rounded-t ${colorMap[color].split(' ')[1]} h-3`}></div>
-           <div className={`w-1 bg-current rounded-t ${colorMap[color].split(' ')[1]} h-5`}></div>
-           <div className={`w-1 bg-current rounded-t ${colorMap[color].split(' ')[1]} h-4`}></div>
-           <div className={`w-1 bg-current rounded-t ${colorMap[color].split(' ')[1]} h-7`}></div>
-        </div>
+        <div className={`p-2.5 rounded-xl ${colors[color]}`}>{icon}</div>
+        <span className="text-[10px] font-bold text-slate-300 uppercase tracking-tighter">{trend}</span>
       </div>
-      <div>
-        <h4 className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">{title}</h4>
-        <div className="flex items-baseline gap-2">
-          <span className="text-3xl font-black text-slate-800">{value}</span>
-        </div>
-        <p className="text-xs text-slate-400 mt-2 font-medium">{trend}</p>
-      </div>
+      <h4 className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-1">{title}</h4>
+      <p className="text-2xl font-black text-slate-800">{value}</p>
     </div>
   );
 };

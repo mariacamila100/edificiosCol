@@ -1,122 +1,146 @@
 import React, { useEffect } from 'react';
-import { X, Phone, Bed, Bath, Maximize, MapPin, Car, Hash, Info } from 'lucide-react';
+import { 
+  X, Bed, Bath, Maximize, MapPin, Car, 
+  MessageCircle, Star, Shield, TrendingUp,
+  CheckCircle2, ArrowRight, Layers 
+} from 'lucide-react';
 
 const InmuebleDetalle = ({ inmueble, onClose }) => {
-  // BLOQUEO DE SCROLL
   useEffect(() => {
     document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
+    return () => { document.body.style.overflow = 'unset'; };
   }, []);
 
   if (!inmueble) return null;
 
-  const imagenMostrar = inmueble.foto || 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=1000';
+  // Lógica de color persistente: Naranja para Arriendo, Azul para Venta
+  const esArriendo = inmueble.estado?.toLowerCase().includes('arriendo') || 
+                     inmueble.estado?.toLowerCase().includes('renta');
 
   const contactarWhatsApp = () => {
-    const mensaje = `Hola, estoy interesado en el inmueble: ${inmueble.titulo}. Ubicado en: ${inmueble.nombreEdificio}.`;
+    const mensaje = `¡Hola! Me encantó este inmueble en ${inmueble.estado || 'Venta'}: ${inmueble.titulo} en ${inmueble.barrio}. ¿Sigue disponible?`;
     window.open(`https://wa.me/573000000000?text=${encodeURIComponent(mensaje)}`, '_blank');
   };
 
   return (
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-0 md:p-4">
+      <div className="absolute inset-0 bg-black/10 backdrop-blur-[2px]" onClick={onClose} />
       
-      {/* Overlay con desenfoque */}
-      <div 
-        className="absolute inset-0 bg-slate-900/70 backdrop-blur-sm transition-opacity" 
-        onClick={onClose} 
-      />
-      
-      {/* CONTENEDOR PRINCIPAL */}
-      <div className="relative bg-white w-full max-w-5xl rounded-[2rem] shadow-2xl overflow-hidden flex flex-col md:flex-row max-h-[90vh] animate-in zoom-in duration-300">
+      <div className="relative bg-white w-full max-w-6xl md:h-[90vh] rounded-none md:rounded-[3rem] shadow-2xl overflow-hidden flex flex-col md:flex-row animate-in zoom-in duration-300">
         
-        {/* BOTÓN CERRAR */}
-        <button 
-          onClick={onClose} 
-          className="absolute top-4 right-4 z-[110] bg-white shadow-lg p-2 rounded-full hover:bg-red-50 hover:text-red-500 transition-all active:scale-90"
-        >
-          <X size={20} />
-        </button>
-
-        {/* COLUMNA IZQUIERDA: Solo Imagen ahora */}
-        <div className="w-full md:w-[45%] flex flex-col bg-slate-100 border-r border-slate-100">
-          <div className="h-64 md:h-full relative overflow-hidden">
-            <img src={imagenMostrar} className="w-full h-full object-cover" alt={inmueble.titulo} />
-            <div className="absolute bottom-6 left-6">
-              <span className="bg-orange-500 text-white px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">
-                En {inmueble.tipo}
+        {/* LADO IZQUIERDO (Visual) */}
+        <div className="w-full md:w-[60%] relative h-[40vh] md:h-full bg-slate-100">
+          <img 
+            src={inmueble.foto || inmueble.fotos?.[0] || 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200'} 
+            className="w-full h-full object-cover"
+            alt={inmueble.titulo}
+          />
+          
+          <div className="absolute top-8 left-8 flex flex-col gap-3">
+            {/* TAG DINÁMICO: Azul para Venta, Naranja para Arriendo */}
+            <div className={`${esArriendo ? 'bg-orange-500' : 'bg-blue-600'} text-white px-6 py-2 rounded-2xl flex items-center gap-2 shadow-xl shadow-black/20`}>
+              <Star size={18} fill="currentColor" />
+              <span className="font-black uppercase tracking-widest text-[11px]">
+                {inmueble.estado || 'Venta'}
               </span>
+            </div>
+            <div className="bg-white/90 backdrop-blur-md text-slate-900 px-6 py-2 rounded-2xl flex items-center gap-2 shadow-lg">
+              <Shield size={18} className={esArriendo ? "text-orange-500" : "text-blue-600"} />
+              <span className="font-black uppercase tracking-widest text-[11px]">Verificado</span>
+            </div>
+          </div>
+
+          {/* CAJA DE PRECIO DINÁMICA */}
+          <div className="absolute bottom-8 left-8 right-8 bg-white/10 backdrop-blur-2xl border border-white/20 p-8 rounded-[2.5rem] flex justify-between items-center text-white">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-80 mb-1">
+                {esArriendo ? 'Canon Mensual' : 'Precio de Venta'}
+              </p>
+              <h3 className="text-4xl font-black tracking-tighter">
+                ${Number(inmueble.precio).toLocaleString('es-CO')}
+                {esArriendo && <span className="text-xl ml-1 opacity-70">/ mes</span>}
+              </h3>
+            </div>
+            <div className="hidden lg:block text-right">
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-80 mb-1">Sector Valorizado</p>
+              <p className="text-lg font-bold flex items-center justify-end gap-2 italic">
+                {inmueble.barrio} <TrendingUp size={20} className={esArriendo ? "text-orange-400" : "text-blue-400"} />
+              </p>
             </div>
           </div>
         </div>
 
-        {/* COLUMNA DERECHA: Información y Acción */}
-        <div className="w-full md:w-[55%] flex flex-col bg-white">
-          
-          <div className="flex-1 overflow-y-auto p-6 md:p-10 custom-scrollbar">
-            <div className="flex gap-2 mb-4">
-              <span className="flex items-center gap-1 bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-blue-100">
-                <Hash size={12} /> Estrato {inmueble.estrato}
-              </span>
-            </div>
-
-            <h2 className="text-3xl font-black text-slate-900 mb-2 leading-tight">
-              {inmueble.titulo}
-            </h2>
+        {/* LADO DERECHO (Información) */}
+        <div className="w-full md:w-[40%] flex flex-col bg-white">
+          <div className="flex-1 overflow-y-auto p-8 md:p-12 custom-scrollbar">
             
-            <div className="flex items-center gap-2 text-slate-700 mb-8">
-              <MapPin size={18} className="text-orange-500 flex-shrink-0" />
-              <p className="font-bold text-lg">
-                {inmueble.nombreEdificio} <span className="text-slate-400 font-medium">— {inmueble.unidad}</span>
-              </p>
-            </div>
+            <button onClick={onClose} className="absolute top-6 right-8 p-3 bg-slate-100 rounded-2xl hover:bg-rose-500 hover:text-white transition-all z-50">
+              <X size={24} />
+            </button>
 
-            {/* Grid de Atributos */}
-            <div className="grid grid-cols-4 gap-2 mb-8">
-              {[
-                { icon: <Bed size={18}/>, label: 'Hab', val: inmueble.habitaciones },
-                { icon: <Bath size={18}/>, label: 'Baños', val: inmueble.baños },
-                { icon: <Maximize size={18}/>, label: 'Área', val: `${inmueble.area}m²` },
-                { icon: <Car size={18}/>, label: 'Parq', val: inmueble.parqueadero ? 'Sí' : 'No' }
-              ].map((item, idx) => (
-                <div key={idx} className="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center">
-                  <div className="text-blue-500 mb-1 flex justify-center">{item.icon}</div>
-                  <p className="text-[8px] font-black text-slate-400 uppercase">{item.label}</p>
-                  <p className="font-black text-slate-800 text-xs">{item.val}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="mb-6">
-              <h4 className="flex items-center gap-2 font-black text-slate-900 uppercase text-[10px] tracking-widest mb-3 text-blue-600">
-                <Info size={14}/> Descripción de la propiedad
-              </h4>
-              <p className="text-slate-500 text-sm leading-relaxed font-medium">
-                {inmueble.descripcion || 'No hay descripción disponible para este inmueble.'}
-              </p>
-            </div>
-          </div>
-
-          {/* FOOTER DEL MODAL: Precio y Botón */}
-          <div className="p-6 md:p-8 border-t border-slate-100 bg-slate-50/50">
-            <div className="flex items-center justify-between gap-4">
+            <div className="space-y-8">
               <div>
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Precio Total</p>
-                <p className="text-2xl font-black text-blue-900 leading-none">
-                  ${Number(inmueble.precio).toLocaleString('es-CO')}
+                <p className={`${esArriendo ? 'text-orange-500' : 'text-blue-600'} font-black text-[12px] uppercase tracking-[0.4em] mb-3`}>
+                  {inmueble.nombreEdificio || 'Propiedad Exclusiva'}
+                </p>
+                <h2 className="text-4xl font-black text-slate-950 leading-[1.1] tracking-tighter">
+                  {inmueble.titulo}
+                </h2>
+              </div>
+
+              {/* Grid de especificaciones */}
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { icon: <Bed />, text: `${inmueble.habitaciones} Alcobas`, label: 'Habitaciones' },
+                  { icon: <Bath />, text: `${inmueble.baños} Baños`, label: 'Completos' },
+                  { icon: <Maximize />, text: `${inmueble.area} m²`, label: 'Área Privada' },
+                  { icon: <Layers />, text: `Piso ${inmueble.piso || 'N/A'}`, label: 'Ubicación' },
+                  { icon: <Car />, text: inmueble.parqueadero ? 'Parqueadero' : 'Sin Garaje', label: 'Seguridad' }
+                ].map((item, i) => (
+                  <div key={i} className="p-4 rounded-[1.5rem] bg-slate-50 border border-slate-100 group hover:border-orange-200 transition-all">
+                    <div className={`${esArriendo ? 'text-orange-500' : 'text-blue-600'} mb-2 group-hover:scale-110 transition-transform`}>{item.icon}</div>
+                    <p className="font-black text-slate-900 text-[13px] leading-none mb-1">{item.text}</p>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{item.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Sección de Info con color dinámico */}
+              <div className={`${esArriendo ? 'bg-orange-50/50 border-orange-100' : 'bg-blue-50/50 border-blue-100'} border p-6 rounded-[2rem] space-y-3`}>
+                <h4 className={`text-[11px] font-black ${esArriendo ? 'text-orange-900' : 'text-blue-900'} uppercase tracking-widest mb-2 flex items-center gap-2`}>
+                  <CheckCircle2 size={16}/> Información de Interés
+                </h4>
+                <div className="flex items-center gap-3 text-sm font-bold text-slate-700">
+                  <div className={`w-1.5 h-1.5 rounded-full ${esArriendo ? 'bg-orange-500' : 'bg-blue-500'}`} />
+                  Tipo: <span className={`${esArriendo ? 'text-orange-600' : 'text-blue-600'} ml-1`}>{inmueble.estado || 'Venta'}</span>
+                </div>
+                {['Acabados de Lujo', 'Ubicación Estratégica', 'Alta Valorización'].map((point) => (
+                  <div key={point} className="flex items-center gap-3 text-sm font-bold text-slate-700">
+                    <div className={`w-1.5 h-1.5 rounded-full ${esArriendo ? 'bg-orange-500' : 'bg-blue-500'}`} />
+                    {point}
+                  </div>
+                ))}
+              </div>
+
+              <div>
+                <p className="text-slate-500 text-base leading-relaxed">
+                  {inmueble.descripcion || "Un espacio diseñado para elevar tu calidad de vida en una de las mejores zonas de la ciudad."}
                 </p>
               </div>
-              
-              <button 
-                onClick={contactarWhatsApp}
-                className="flex items-center justify-center gap-2 bg-slate-900 hover:bg-blue-600 text-white font-black text-[11px] uppercase tracking-widest px-8 py-4 rounded-xl transition-all shadow-lg active:scale-95"
-              >
-                <Phone size={16} /> Agendar Cita
-              </button>
             </div>
           </div>
 
+          {/* BOTÓN FINAL NARANJA/AZUL */}
+          <div className="p-8 border-t border-slate-100">
+            <button 
+              onClick={contactarWhatsApp}
+              className={`w-full ${esArriendo ? 'bg-orange-500 shadow-orange-500/40 hover:bg-orange-600' : 'bg-blue-600 shadow-blue-500/40 hover:bg-blue-700'} text-white font-black text-[13px] uppercase tracking-[0.2em] py-6 rounded-[2rem] transition-all flex items-center justify-center gap-3 shadow-2xl active:scale-95 group`}
+            >
+              <MessageCircle size={22} />
+              Quiero {esArriendo ? 'Arrendar' : 'Comprar'} esta Propiedad
+              <ArrowRight size={18} className="group-hover:translate-x-2 transition-transform" />
+            </button>
+          </div>
         </div>
       </div>
     </div>

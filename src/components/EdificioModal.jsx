@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { departamentosColombia } from '../data/colombia';
-import {
-  createEdificio,
-  updateEdificio
-} from '../services/edificios.services';
+import { createEdificio, updateEdificio } from '../services/edificios.services';
 import { alertSuccess } from './Alert';
+import { 
+  Building2, MapPin, Phone, Mail, 
+  Globe, Activity, X, Check, ArrowRight 
+} from 'lucide-react';
 
 const EdificioModal = ({ edificio, onClose, onSaved }) => {
   const [form, setForm] = useState({
@@ -13,8 +14,8 @@ const EdificioModal = ({ edificio, onClose, onSaved }) => {
     direccion: '',
     departamento: 'Santander',
     ciudad: 'Bucaramanga',
-    telefonoAdmin: '', 
-    emailAdmin: '',    
+    telefonoAdmin: '',
+    emailAdmin: '',
     estado: 'activo'
   });
 
@@ -29,7 +30,6 @@ const EdificioModal = ({ edificio, onClose, onSaved }) => {
 
   useEffect(() => {
     if (edificio) {
-      // Si el número ya trae el 57, se lo quitamos para mostrar solo los 10 dígitos en el input
       const telLimpio = edificio.telefonoAdmin?.startsWith('57') 
         ? edificio.telefonoAdmin.slice(2) 
         : edificio.telefonoAdmin;
@@ -48,8 +48,6 @@ const EdificioModal = ({ edificio, onClose, onSaved }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Antes de enviar, nos aseguramos de que el número guardado tenga el 57
     const dataFinal = {
       ...form,
       telefonoAdmin: form.telefonoAdmin ? `57${form.telefonoAdmin}` : ''
@@ -57,80 +55,105 @@ const EdificioModal = ({ edificio, onClose, onSaved }) => {
 
     if (edificio) {
       await updateEdificio(edificio.id, dataFinal);
-      alertSuccess('Edificio actualizado', 'Los cambios se guardaron correctamente');
+      alertSuccess('Actualizado', 'Edificio modificado con éxito');
     } else {
       await createEdificio(dataFinal);
-      alertSuccess('Edificio creado', 'El edificio fue registrado correctamente');
+      alertSuccess('Creado', 'Nuevo edificio registrado');
     }
     onSaved();
     onClose();
   };
 
-  const inputClass = "w-full px-4 py-2.5 rounded-lg bg-slate-100 border border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition outline-none";
-
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-      <div onClick={onClose} className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+      {/* Overlay con desenfoque profesional */}
+      <div 
+        onClick={onClose} 
+        className="absolute inset-0 bg-slate-900/60 backdrop-blur-md transition-opacity animate-fadeIn" 
+      />
 
-      <div className="relative bg-white rounded-2xl p-8 w-full max-w-lg shadow-2xl animate-fadeIn max-h-[90vh] overflow-y-auto">
-        <h3 className="text-xl font-bold mb-6 text-slate-800">
-          {edificio ? 'Editar edificio' : 'Nuevo edificio'}
-        </h3>
+      <div className="relative bg-white rounded-[2.5rem] w-full max-w-xl shadow-2xl border border-slate-100 overflow-hidden animate-slideUp">
+        
+        {/* Header con estilo moderno */}
+        <div className="bg-slate-50/50 px-10 py-8 border-b border-slate-100 flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <div className="bg-blue-600 p-3 rounded-2xl shadow-lg shadow-blue-200">
+              <Building2 className="text-white" size={24} />
+            </div>
+            <div>
+              <h3 className="text-2xl font-black text-slate-800">
+                {edificio ? 'Editar Edificio' : 'Nuevo Edificio'}
+              </h3>
+              <p className="text-slate-400 text-xs font-medium uppercase tracking-widest">Información Estructural</p>
+            </div>
+          </div>
+          <button 
+            onClick={onClose}
+            className="p-2 hover:bg-white hover:shadow-md rounded-full text-slate-400 hover:text-slate-600 transition-all"
+          >
+            <X size={20} />
+          </button>
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <FormGroup label="Nombre del edificio">
-            <input
-              value={form.nombre}
-              onChange={e => setForm({ ...form, nombre: e.target.value })}
-              required
-              className={inputClass}
-            />
-          </FormGroup>
+        <form onSubmit={handleSubmit} className="p-10 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+          
+          {/* Nombre y Dirección */}
+          <div className="space-y-4">
+            <FormGroup label="Nombre Comercial" icon={<Building2 size={16} />}>
+              <input
+                value={form.nombre}
+                onChange={e => setForm({ ...form, nombre: e.target.value })}
+                required
+                placeholder="Ej: Conjunto Residencial Horizonte"
+                className="w-full px-5 py-3.5 rounded-2xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none text-slate-700 font-medium"
+              />
+            </FormGroup>
 
-          <FormGroup label="Dirección">
-            <input
-              value={form.direccion}
-              onChange={e => setForm({ ...form, direccion: e.target.value })}
-              required
-              className={inputClass}
-            />
-          </FormGroup>
+            <FormGroup label="Dirección Exacta" icon={<MapPin size={16} />}>
+              <input
+                value={form.direccion}
+                onChange={e => setForm({ ...form, direccion: e.target.value })}
+                required
+                placeholder="Calle, Carrera, Barrio..."
+                className="w-full px-5 py-3.5 rounded-2xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none text-slate-700 font-medium"
+              />
+            </FormGroup>
+          </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            {/* INPUT DE TELÉFONO CON PREFIJO FIJO */}
-            <FormGroup label="WhatsApp Admin">
+          {/* Contacto Admin */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormGroup label="WhatsApp Admin" icon={<Phone size={16} />}>
               <div className="relative flex items-center">
-                <span className="absolute left-4 text-slate-400 font-medium text-sm border-r border-slate-300 pr-2">
-                  +57
-                </span>
+                <span className="absolute left-5 text-slate-400 font-bold text-sm">+57</span>
                 <input
                   type="tel"
                   maxLength={10}
                   value={form.telefonoAdmin}
                   onChange={e => setForm({ ...form, telefonoAdmin: e.target.value.replace(/\D/g, '') })}
-                  placeholder="300 123 4567"
-                  className={`${inputClass} pl-14`}
+                  placeholder="300 000 0000"
+                  className="w-full pl-14 pr-5 py-3.5 rounded-2xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none text-slate-700 font-medium"
                 />
               </div>
             </FormGroup>
 
-            <FormGroup label="Email Administración">
+            <FormGroup label="E-mail Admin" icon={<Mail size={16} />}>
               <input
                 type="email"
                 value={form.emailAdmin}
                 onChange={e => setForm({ ...form, emailAdmin: e.target.value })}
-                placeholder="admin@correo.com"
-                className={inputClass}
+                placeholder="correo@admin.com"
+                className="w-full px-5 py-3.5 rounded-2xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none text-slate-700 font-medium"
               />
             </FormGroup>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <FormGroup label="Departamento">
+          {/* Ubicación Geográfica */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormGroup label="Departamento" icon={<Globe size={16} />}>
               <select
                 value={form.departamento}
                 onChange={e => setForm({ ...form, departamento: e.target.value, ciudad: '' })}
-                className={inputClass}
+                className="w-full px-5 py-3.5 rounded-2xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 transition-all outline-none text-slate-700 font-medium appearance-none cursor-pointer"
               >
                 {departamentosColombia.map(dep => (
                   <option key={dep.departamento} value={dep.departamento}>{dep.departamento}</option>
@@ -138,12 +161,12 @@ const EdificioModal = ({ edificio, onClose, onSaved }) => {
               </select>
             </FormGroup>
 
-            <FormGroup label="Ciudad">
+            <FormGroup label="Ciudad" icon={<ArrowRight size={16} />}>
               <select
                 value={form.ciudad}
                 onChange={e => setForm({ ...form, ciudad: e.target.value })}
                 required
-                className={inputClass}
+                className="w-full px-5 py-3.5 rounded-2xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-blue-500 transition-all outline-none text-slate-700 font-medium appearance-none cursor-pointer"
               >
                 <option value="">Seleccione...</option>
                 {ciudadesFiltradas.map(c => (
@@ -153,35 +176,55 @@ const EdificioModal = ({ edificio, onClose, onSaved }) => {
             </FormGroup>
           </div>
 
-          <FormGroup label="Estado">
-            <select
-              value={form.estado}
-              onChange={e => setForm({ ...form, estado: e.target.value })}
-              className={inputClass}
-            >
-              <option value="activo">Activo</option>
-              <option value="inactivo">Inactivo</option>
-            </select>
+          {/* Estado del Registro */}
+          <FormGroup label="Estado Operativo" icon={<Activity size={16} />}>
+            <div className="flex gap-4">
+              {['activo', 'inactivo'].map((status) => (
+                <button
+                  key={status}
+                  type="button"
+                  onClick={() => setForm({...form, estado: status})}
+                  className={`flex-1 py-3 rounded-2xl font-bold capitalize transition-all border ${
+                    form.estado === status 
+                    ? 'bg-blue-50 border-blue-200 text-blue-600 shadow-sm' 
+                    : 'bg-white border-slate-100 text-slate-400 hover:bg-slate-50'
+                  }`}
+                >
+                  {status}
+                </button>
+              ))}
+            </div>
           </FormGroup>
-
-          <div className="flex gap-3 pt-4">
-            <button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-semibold transition">
-              Guardar
-            </button>
-            <button type="button" onClick={onClose} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 rounded-lg font-semibold transition">
-              Cancelar
-            </button>
-          </div>
         </form>
+
+        {/* Footer Actions */}
+        <div className="p-10 pt-0 flex gap-4">
+          <button 
+            type="button" 
+            onClick={onClose} 
+            className="flex-1 px-6 py-4 rounded-2xl font-bold text-slate-500 hover:bg-slate-50 transition-all"
+          >
+            Descartar
+          </button>
+          <button 
+            onClick={handleSubmit}
+            className="flex-[2] bg-slate-900 hover:bg-blue-600 text-white px-6 py-4 rounded-2xl font-bold shadow-xl shadow-slate-200 transition-all flex items-center justify-center gap-2 group"
+          >
+            <Check size={20} />
+            <span>{edificio ? 'Guardar Cambios' : 'Registrar Edificio'}</span>
+          </button>
+        </div>
       </div>
     </div>,
     document.body
   );
 };
 
-const FormGroup = ({ label, children }) => (
-  <div>
-    <label className="block text-[10px] font-semibold text-slate-500 mb-1 uppercase tracking-wide">
+// Componente Interno para Labels consistentes
+const FormGroup = ({ label, icon, children }) => (
+  <div className="space-y-2">
+    <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">
+      <span className="text-blue-500">{icon}</span>
       {label}
     </label>
     {children}
