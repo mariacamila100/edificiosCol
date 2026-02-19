@@ -5,7 +5,7 @@ import {
   Maximize2, MoreVertical, ArrowUpDown, Calendar,
   Tag, Download
 } from 'lucide-react';
-import { getInmuebles, deleteInmueble } from '../services/inmuebles.services';
+import { getInmuebles, deleteInmueble } from '../services/inmuebles.service';
 import { getEdificios } from '../services/edificios.services';
 import { alertSuccess, alertConfirm } from '../components/Alert';
 import InmuebleModal from '../components/InmuebleModal';

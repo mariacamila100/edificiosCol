@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { 
   MapPin, Loader2, Ruler, ChevronLeft, ChevronRight, Search, 
-  ArrowUpRight, X, Sofa, Car, Tag 
+  Sofa, Car, Tag 
 } from 'lucide-react';
-import { getInmuebles } from '../services/inmuebles.services';
+import { getInmuebles } from '../services/inmuebles.service';
 import InmuebleDetalle from './InmuebleDetalle';
 
 const Catalog = ({ filtrosHero }) => {
@@ -13,7 +13,7 @@ const Catalog = ({ filtrosHero }) => {
   const [selectedInmueble, setSelectedInmueble] = useState(null);
   
   // Estados de Filtros
-  const [tipo, setTipo] = useState(''); // 'Venta' o 'Arriendo'
+  const [tipo, setTipo] = useState(''); // '' (Todos), 'Venta' o 'Arriendo'
   const [areaMin, setAreaMin] = useState('');
   const [soloAmoblado, setSoloAmoblado] = useState(false);
   const [conParqueadero, setConParqueadero] = useState(false);
@@ -39,6 +39,16 @@ const Catalog = ({ filtrosHero }) => {
 
   useEffect(() => {
     let res = inmuebles.filter(i => {
+      const estadoLimpio = i.estado?.toLowerCase() || '';
+
+      // 🚫 REGLA DE ORO: Solo mostrar lo que está disponible para el público
+      // Filtramos fuera "Entregado" y cualquier cosa que no sea Venta o Arriendo
+      const esVenta = estadoLimpio === 'venta';
+      const esArriendo = estadoLimpio === 'arriendo';
+      
+      if (estadoLimpio === 'entregado') return false;
+      if (!esVenta && !esArriendo) return false; // Esto quita basura o estados internos
+
       // 1. Buscador (Hero)
       const busqueda = filtrosHero?.toLowerCase() || '';
       const matchTexto = !filtrosHero || 
@@ -46,9 +56,8 @@ const Catalog = ({ filtrosHero }) => {
         i.barrio?.toLowerCase().includes(busqueda) ||
         i.nombreEdificio?.toLowerCase().includes(busqueda);
       
-      // 2. Filtro de Estado (Venta/Arriendo)
-      const estadoReal = i.estado || 'Venta';
-      const matchTipo = !tipo || estadoReal.toLowerCase() === tipo.toLowerCase();
+      // 2. Filtro de Tipo (Botones: Todos / Venta / Arriendo)
+      const matchTipo = !tipo || estadoLimpio === tipo.toLowerCase();
 
       // 3. Otros filtros
       const matchArea = !areaMin || Number(i.area) >= Number(areaMin);
@@ -62,19 +71,13 @@ const Catalog = ({ filtrosHero }) => {
     setPagina(1);
   }, [filtrosHero, tipo, areaMin, soloAmoblado, conParqueadero, inmuebles]);
 
-  // Lógica de Paginación
   const totalPaginas = Math.ceil(filtrados.length / itemsPorPagina);
   const inicio = (pagina - 1) * itemsPorPagina;
   const itemsAMostrar = filtrados.slice(inicio, inicio + itemsPorPagina);
 
   const cambiarPagina = (num) => {
     setPagina(num);
-    const element = document.getElementById('catalog-start');
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    } else {
-      window.scrollTo({ top: 400, behavior: 'smooth' });
-    }
+    document.getElementById('catalog-start')?.scrollIntoView({ behavior: 'smooth' });
   };
 
   if (loading) {
@@ -93,7 +96,6 @@ const Catalog = ({ filtrosHero }) => {
       <div className="mb-12 space-y-6">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           
-          {/* Tabs de Venta/Arriendo */}
           <div className="flex p-1.5 bg-slate-100 rounded-2xl w-fit">
             {[
               { label: 'Todos', value: '' },
@@ -113,7 +115,6 @@ const Catalog = ({ filtrosHero }) => {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            {/* Toggles Rápidos */}
             <button 
               onClick={() => setSoloAmoblado(!soloAmoblado)}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all ${
@@ -147,15 +148,13 @@ const Catalog = ({ filtrosHero }) => {
               onClick={() => setSelectedInmueble(item)}
               className="group relative bg-white rounded-[3.5rem] p-4 border border-slate-100 hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.08)] transition-all duration-500 cursor-pointer"
             >
-              {/* Imagen Contenedor */}
               <div className="relative aspect-[16/10] rounded-[2.8rem] overflow-hidden mb-8">
                 <img 
                   src={item.fotos?.[0] || item.foto || "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=800"} 
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[2s]"
-                  alt={item.titulo}
+                  alt="Apartamento"
                 />
                 
-                {/* Badge Dinámico: NARANJA para Arriendo, AZUL para Venta */}
                 <div className="absolute top-5 right-5">
                   <div className={`flex items-center gap-2 px-5 py-2.5 ${esArriendo ? 'bg-orange-500' : 'bg-blue-600'} text-white rounded-2xl shadow-xl shadow-black/20`}>
                     <Tag size={12} fill="currentColor" />
@@ -173,16 +172,17 @@ const Catalog = ({ filtrosHero }) => {
                 </div>
               </div>
 
-              {/* Info de la Card */}
               <div className="px-4 pb-4">
                 <div className="flex justify-between items-start">
                   <div className="space-y-2">
                     <p className={`text-[10px] font-black ${esArriendo ? 'text-orange-500' : 'text-blue-600'} uppercase tracking-[0.25em]`}>
                       {item.nombreEdificio || 'Edificio Real'}
                     </p>
+                    
                     <h3 className="text-2xl font-bold text-slate-900 leading-none group-hover:text-blue-600 transition-colors">
-                      {item.titulo}
+                      Apartamento
                     </h3>
+                    
                     <div className="flex items-center gap-4 pt-2">
                       <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400">
                         <Ruler size={16} /> {item.area}m²
@@ -205,15 +205,14 @@ const Catalog = ({ filtrosHero }) => {
         }) : (
           <div className="col-span-full py-32 text-center bg-slate-50/50 rounded-[4rem] border-2 border-dashed border-slate-200">
             <Search className="mx-auto text-slate-200 mb-6" size={50} />
-            <p className="text-slate-400 font-black uppercase text-xs tracking-[0.4em]">Sin resultados en esta categoría</p>
+            <p className="text-slate-400 font-black uppercase text-xs tracking-[0.4em]">Sin propiedades disponibles</p>
           </div>
         )}
       </div>
 
-      {/* 🔢 PAGINACIÓN NUMÉRICA INTUITIVA */}
+      {/* 🔢 PAGINACIÓN */}
       {totalPaginas > 1 && (
         <div className="flex flex-col md:flex-row items-center justify-between gap-6 py-12 border-t border-slate-100">
-          
           <button 
             disabled={pagina === 1}
             onClick={() => cambiarPagina(pagina - 1)}
@@ -250,7 +249,6 @@ const Catalog = ({ filtrosHero }) => {
         </div>
       )}
 
-      {/* MODAL DETALLE */}
       {selectedInmueble && (
         <InmuebleDetalle 
           inmueble={selectedInmueble} 

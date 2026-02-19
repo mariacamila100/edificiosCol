@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { 
-  X, User, Mail, Phone, Lock, Building, Home, Check 
+  X, User, Mail, Phone, Lock, Building, Home, Check, Loader2, Eye, EyeOff 
 } from 'lucide-react';
 import { createUsuario, updateUsuario } from '../services/usuarios.service';
 import { getEdificios, getApartamentosPorEdificio } from '../services/edificios.services';
@@ -12,6 +12,7 @@ const UsuarioModal = ({ usuario, onClose, onSaved }) => {
   const [apartamentos, setApartamentos] = useState([]);
   const [loadingAptos, setLoadingAptos] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false); // Estado para ver password
 
   const [form, setForm] = useState({
     nombreApellido: '',
@@ -22,39 +23,49 @@ const UsuarioModal = ({ usuario, onClose, onSaved }) => {
     unidad: '',
   });
 
-  // Cargar apartamentos de forma memorizada para evitar re-renders innecesarios
-  const cargarApartamentos = useCallback(async (edificioId) => {
-    if (!edificioId) {
+  const cargarApartamentos = useCallback(async (idEdificio) => {
+    if (!idEdificio) {
       setApartamentos([]);
       return;
     }
     setLoadingAptos(true);
     try {
-      const data = await getApartamentosPorEdificio(edificioId, 'activos');
-      // Ordenamos las unidades numéricamente
-      const sortedAptos = data.sort((a, b) => a.unidad.localeCompare(b.unidad, undefined, {numeric: true}));
-      setApartamentos(sortedAptos);
+      const data = await getApartamentosPorEdificio(idEdificio);
+      const listaLimpia = Array.isArray(data) ? data : (data?.apartamentos || []);
+      const sorted = listaLimpia.sort((a, b) => {
+        const valA = String(a.unidad || a.titulo || '');
+        const valB = String(b.unidad || b.titulo || '');
+        return valA.localeCompare(valB, undefined, { numeric: true });
+      });
+      setApartamentos(sorted);
     } catch (error) {
-      console.error("Error cargando apartamentos:", error);
+      console.error("Error en cargarApartamentos:", error);
+      setApartamentos([]);
     } finally {
       setLoadingAptos(false);
     }
   }, []);
 
   useEffect(() => {
-    getEdificios().then(setEdificios);
+    const init = async () => {
+      const eds = await getEdificios();
+      setEdificios(eds || []);
 
-    if (usuario) {
-      setForm({
-        nombreApellido: usuario.nombreApellido || '',
-        telefono: usuario.telefono || '',
-        email: usuario.email || '',
-        edificioId: usuario.edificioId || '',
-        unidad: usuario.unidad || '',
-        password: '*****'
-      });
-      cargarApartamentos(usuario.edificioId);
-    }
+      if (usuario) {
+        setForm({
+          nombreApellido: usuario.nombreApellido || '',
+          telefono: usuario.telefono || '',
+          email: usuario.email || '',
+          edificioId: usuario.edificioId || '',
+          unidad: usuario.unidad || '',
+          password: '*****'
+        });
+        if (usuario.edificioId) {
+          cargarApartamentos(usuario.edificioId);
+        }
+      }
+    };
+    init();
   }, [usuario, cargarApartamentos]);
 
   const handleEdificioChange = (e) => {
@@ -65,8 +76,9 @@ const UsuarioModal = ({ usuario, onClose, onSaved }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!form.edificioId || !form.unidad) return;
+    
     setLoading(true);
-
     try {
       if (usuario) {
         await updateUsuario(usuario.id, {
@@ -75,10 +87,10 @@ const UsuarioModal = ({ usuario, onClose, onSaved }) => {
           edificioId: form.edificioId,
           unidad: form.unidad
         });
-        alertSuccess('Actualizado', 'Residente modificado con éxito');
+        alertSuccess('Actualizado', 'Datos guardados correctamente');
       } else {
         await createUsuario(form);
-        alertSuccess('Registrado', 'Nuevo residente creado con éxito');
+        alertSuccess('Éxito', 'Residente creado correctamente');
       }
       onSaved();
       onClose();
@@ -90,28 +102,26 @@ const UsuarioModal = ({ usuario, onClose, onSaved }) => {
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-      <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col animate-fadeIn">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+      <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
         
-        {/* Header */}
-        <div className="flex justify-between items-center px-8 py-6 border-b border-slate-100">
+        <div className="flex justify-between items-center px-8 py-6 border-b border-slate-50">
           <div>
             <h3 className="text-xl font-black text-slate-800">
               {usuario ? 'Editar Residente' : 'Nuevo Residente'}
             </h3>
-            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Información de cuenta y ubicación</p>
+            <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Asignación de Unidad</p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-            <X size={20} className="text-slate-400" />
+          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400">
+            <X size={20} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-8 space-y-5 overflow-y-auto max-h-[80vh]">
           
           <IconInput 
-            label="Nombre y Apellido"
+            label="Nombre Completo"
             icon={User}
-            placeholder="Nombre completo"
             value={form.nombreApellido}
             onChange={e => setForm({ ...form, nombreApellido: e.target.value })}
             required
@@ -122,7 +132,6 @@ const UsuarioModal = ({ usuario, onClose, onSaved }) => {
               label="Email / Usuario"
               icon={Mail}
               type="email"
-              placeholder="correo@ejemplo.com"
               value={form.email}
               onChange={e => setForm({ ...form, email: e.target.value })}
               required
@@ -131,8 +140,6 @@ const UsuarioModal = ({ usuario, onClose, onSaved }) => {
             <IconInput 
               label="Teléfono"
               icon={Phone}
-              type="tel"
-              placeholder="Ej: 3001234567"
               value={form.telefono}
               onChange={e => setForm({ ...form, telefono: e.target.value })}
             />
@@ -142,82 +149,86 @@ const UsuarioModal = ({ usuario, onClose, onSaved }) => {
             <IconInput 
               label="Contraseña"
               icon={Lock}
-              type="password"
-              placeholder="Mínimo 6 caracteres"
+              type={showPassword ? "text" : "password"}
               value={form.password}
               onChange={e => setForm({ ...form, password: e.target.value })}
               required
+              rightElement={
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 transition-colors"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              }
             />
           )}
 
-          <hr className="border-slate-50 my-2" />
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Selector de Edificios */}
-            <div className="space-y-1">
-              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                Edificio Asignado
-              </label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Edificio</label>
               <div className="relative group">
-                <Building className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={18} />
+                <Building className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={18} />
                 <select
                   value={form.edificioId}
                   onChange={handleEdificioChange}
                   required
-                  className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-blue-500/30 transition-all appearance-none cursor-pointer"
+                  className="w-full pl-12 pr-10 py-4 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-blue-500/30 transition-all appearance-none"
                 >
                   <option value="">Seleccionar...</option>
-                  {edificios.map(edi => (
-                    <option key={edi.id} value={edi.id}>{edi.nombre}</option>
+                  {edificios.map(ed => (
+                    <option key={ed.id} value={ed.id}>{ed.nombre}</option>
                   ))}
                 </select>
               </div>
             </div>
 
-            {/* Selector de Apartamentos (Dependiente) */}
-            <div className="space-y-1">
-              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                {loadingAptos ? 'Cargando Unidades...' : 'Unidad / Apto'}
-              </label>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Unidad</label>
               <div className="relative group">
-                <Home className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={18} />
+                <Home className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${loadingAptos ? 'text-blue-500' : 'text-slate-400'}`} size={18} />
                 <select
                   value={form.unidad}
                   onChange={e => setForm({ ...form, unidad: e.target.value })}
                   required
                   disabled={!form.edificioId || loadingAptos}
-                  className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-blue-500/30 transition-all appearance-none cursor-pointer disabled:opacity-50"
+                  className="w-full pl-12 pr-10 py-4 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-blue-500/30 transition-all appearance-none disabled:opacity-50"
                 >
                   <option value="">
-                    {!form.edificioId ? 'Elija edificio' : 'Seleccionar...'}
+                    {loadingAptos ? 'Cargando...' : !form.edificioId ? 'Elige edificio' : 'Seleccionar...'}
                   </option>
                   {apartamentos.map(ap => (
-                    <option key={ap.id} value={ap.unidad}>
-                      {ap.unidad}
+                    <option key={ap.id || ap._id} value={ap.unidad || ap.titulo}>
+                      {ap.unidad || ap.titulo}
                     </option>
                   ))}
                 </select>
+                {loadingAptos && (
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                    <Loader2 className="animate-spin text-blue-500" size={16} />
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
-          <div className="flex gap-3 pt-4">
+          <div className="flex gap-4 pt-6">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-all active:scale-95"
+              className="flex-1 py-4 text-slate-500 font-bold hover:bg-slate-50 rounded-2xl transition-all"
             >
-              Cancelar
+              Cerrar
             </button>
             <button
               type="submit"
-              disabled={loading}
-              className="flex-[2] py-4 bg-slate-900 text-white rounded-2xl font-black flex justify-center items-center gap-2 hover:bg-black shadow-xl shadow-slate-200 transition-all active:scale-95 disabled:opacity-50"
+              disabled={loading || !form.unidad}
+              className="flex-[2] py-4 bg-slate-900 text-white rounded-2xl font-black flex justify-center items-center gap-2 hover:bg-black shadow-xl shadow-slate-200 transition-all disabled:opacity-40"
             >
-              {loading ? 'Guardando...' : <><Check size={20} /> Guardar Residente</>}
+              {loading ? <Loader2 className="animate-spin" size={20} /> : <><Check size={20} /> Guardar</>}
             </button>
           </div>
-
         </form>
       </div>
     </div>,
@@ -225,18 +236,17 @@ const UsuarioModal = ({ usuario, onClose, onSaved }) => {
   );
 };
 
-// Subcomponente para Inputs con Icono
-const IconInput = ({ label, icon: Icon, ...props }) => (
-  <div className="space-y-1">
-    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-      {label}
-    </label>
+// Componente Input Reutilizable Modificado
+const IconInput = ({ label, icon: Icon, rightElement, ...props }) => (
+  <div className="space-y-1.5">
+    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{label}</label>
     <div className="relative group">
-      <Icon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={18} />
+      <Icon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={18} />
       <input 
         {...props} 
-        className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-blue-500/30 transition-all disabled:opacity-50"
+        className={`w-full ${rightElement ? 'pr-12' : 'pr-4'} pl-12 py-4 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold text-slate-700 outline-none focus:bg-white focus:border-blue-500/30 transition-all disabled:bg-slate-100 disabled:text-slate-400`}
       />
+      {rightElement && rightElement}
     </div>
   </div>
 );
