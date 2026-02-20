@@ -1,88 +1,111 @@
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/authContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
+
+// --- COMPONENTES DE INTERFAZ ---
 import Navbar from './components/Navbar';
+
+// --- PÁGINAS ---
 import Home from './pages/Home';
+import CatalogoEdificios from './pages/CatalogoEdificios';
+import VistaApartamentos from './pages/VistaApartamentos';
+import DetalleApartamento from './pages/DetalleApartamento';
 import Login from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
-import DashboardResidente from './pages/DashboardResidentes';
+import DashboardResidente from './pages/DashboardResidentes'; 
 import DashboardAdmin from './pages/DashboardAdmin';
 
-// Wrapper para inyectar el usuario del contexto al Dashboard de Residente
-const DashboardWrapper = () => {
-  const { user } = useAuth();
-  return <DashboardResidente user={user} />;
-};
+/* ====================================================
+    COMPONENTES AUXILIARES (Wrappers de Lógica)
+   ==================================================== */
 
-// Wrapper para inyectar el usuario al Dashboard de Admin
-const AdminWrapper = () => {
-  const { user } = useAuth();
-  return <DashboardAdmin user={user} />;
-};
-
-const NavbarWrapper = () => {
-  const { user, loading } = useAuth();
-
-  if (loading) return null;
-
-  // Solo mostramos la Navbar pública si NO hay usuario
-  if (!user) {
-    return <Navbar />;
-  }
-
-  return null;
-};
-
+// Controla qué ve el usuario al entrar a la raíz "/"
 const RootHandler = () => {
   const { user, loading } = useAuth();
 
-  if (loading) return null;
-
-  if (user) {
-    // Verificamos que 'rol' exista (campo exacto en Firestore)
-    console.log("Rol del usuario detectado:", user.rol); 
-    const destino = user.rol === 'admin' ? '/admin' : '/panel';
-    return <Navigate to={destino} replace />;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white font-sans">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Cargando Sistema...</p>
+        </div>
+      </div>
+    );
   }
 
+  // Si hay sesión, lo mandamos a su panel correspondiente
+  if (user) {
+    return <Navigate to={user.rol === 'admin' ? '/admin' : '/panel'} replace />;
+  }
+
+  // Si no hay sesión, mostramos la Landing Page (Home)
   return <Home />;
 };
+
+// El Navbar solo se muestra si el usuario NO ha iniciado sesión (Vista Pública)
+const NavbarWrapper = () => {
+  const { user, loading } = useAuth();
+  if (loading || user) return null; 
+  return <Navbar />;
+};
+
+/* ====================================================
+    ESTRUCTURA PRINCIPAL DE LA APLICACIÓN
+   ==================================================== */
 
 function App() {
   return (
     <AuthProvider>
       <Router>
+        {/* El Navbar aparecerá en Home, Catalogo, VistaApartamentos y DetalleApartamento */}
         <NavbarWrapper />
-
+        
         <Routes>
-          {/* Ruta Raíz */}
+          {/* 1. Lógica de Inicio (Redirección automática) */}
           <Route path="/" element={<RootHandler />} />
 
-          {/* Rutas Públicas */}
+          {/* 2. Rutas Públicas de Inmuebles */}
+          
+          {/* Muestra todos los edificios disponibles */}
+          <Route path="/catalogo" element={<CatalogoEdificios />} />
+          
+          {/* Muestra la lista de apartamentos de UN edificio específico */}
+          <Route path="/edificio/:edificioId" element={<VistaApartamentos />} />
+          
+          {/* Muestra la información técnica de UN solo apartamento */}
+          {/* ✅ IMPORTANTE: Se unificó a "/apartamento/:id" para coincidir con DetallesEdificio */}
+          <Route path="/apartamento/:id" element={<DetalleApartamento />} />
+          
+          {/* 3. Autenticación */}
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
 
-          {/* Rutas Privadas: Panel de Residente */}
+          {/* 4. Rutas Privadas Protegidas (Requieren Login y Rol) */}
+          
+          {/* Panel de Residentes (Solo consulta de pagos, anuncios, etc.) */}
           <Route
             path="/panel"
             element={
               <ProtectedRoute allowedRoles={['residente']}>
-                <DashboardWrapper />
+                <DashboardResidente />
               </ProtectedRoute>
             }
           />
 
-          {/* Rutas Privadas: Panel de Administrador */}
+          {/* Panel de Administración (Gestión de edificios e inmuebles) */}
           <Route
             path="/admin"
             element={
               <ProtectedRoute allowedRoles={['admin']}>
-                <AdminWrapper />
+                <DashboardAdmin />
               </ProtectedRoute>
             }
           />
 
-          {/* Redirección por defecto */}
+          {/* 5. Manejo de Rutas no encontradas */}
+          {/* Cualquier URL incorrecta redirige al RootHandler */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>

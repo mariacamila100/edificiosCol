@@ -49,7 +49,7 @@ const Navbar = () => {
               className="flex items-center gap-2 text-slate-500 hover:text-slate-900 font-black text-[10px] uppercase tracking-[0.2em] transition-all"
             >
               <Home size={16} className="text-blue-600" />
-              Catálogo
+              Inicio
             </Link>
 
             {!user ? (

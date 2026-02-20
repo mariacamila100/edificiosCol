@@ -3,6 +3,7 @@ import {
   collection,
   addDoc,
   getDocs,
+  getDoc, // Crucial para el detalle
   doc,
   updateDoc,
   serverTimestamp,
@@ -10,21 +11,19 @@ import {
   where
 } from 'firebase/firestore';
 
+// Definición de referencias a colecciones
 const edificiosRef = collection(db, 'edificios');
-
-// ❌ ANTES: const apartamentosRef = collection(db, 'apartamentos');
-// ✅ CORRECCIÓN: Usar 'inmuebles' que es donde guarda tu InmuebleModal
 const inmueblesRef = collection(db, 'inmuebles'); 
 
 /* ====================================================
     🏢 SERVICIOS DE EDIFICIOS
    ==================================================== */
 
+// Obtener todos los edificios activos para el catálogo
 export const getEdificios = async () => {
   try {
     const q = query(edificiosRef, where('estado', '==', 'activo'));
     const snapshot = await getDocs(q);
-
     const lista = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
@@ -65,12 +64,36 @@ export const inactivateEdificio = async (id) => {
 
 
 /* ====================================================
-    🏠 SERVICIOS DE APARTAMENTOS (INMUEBLES)
+    🏠 SERVICIOS DE INMUEBLES (APARTAMENTOS)
    ==================================================== */
 
+/**
+ * 🔥 ESTA FUNCIÓN SOLUCIONA LA PANTALLA EN BLANCO
+ * Obtiene la información de un solo apartamento por su ID único.
+ */
+export const getApartamentoById = async (id) => {
+  try {
+    if (!id) return null;
+    
+    // Limpieza total del ID
+    const cleanId = String(id).trim(); 
+    
+    const docRef = doc(db, 'inmuebles', cleanId);
+    const snapshot = await getDoc(docRef);
+
+    if (snapshot.exists()) {
+      return { id: snapshot.id, ...snapshot.data() };
+    }
+    return null;
+  } catch (error) {
+    console.error("Error en Firebase:", error);
+    return null;
+  }
+};
+
+// Obtener lista de apartamentos filtrados por edificio
 export const getApartamentosPorEdificio = async (edificioId, filtro = 'todos') => {
   try {
-    // 🔹 Aseguramos que edificioId sea String y consultamos la colección correcta
     const q = query(inmueblesRef, where('edificioId', '==', String(edificioId)));
     const snapshot = await getDocs(q);
     
@@ -79,15 +102,14 @@ export const getApartamentosPorEdificio = async (edificioId, filtro = 'todos') =
       ...doc.data()
     }));
 
-    // --- CORRECCIÓN DE FILTROS ---
-    // Nota: Tu modal guarda el estado como texto ("Disponible", "Habitado")
-    // Si usas booleanos aquí, los filtros de "activos/inactivos" fallarán.
+    // Lógica de filtros basada en tus estados de texto ("Disponible", "Habitado", "Vendido")
     if (filtro === 'activos') {
       lista = lista.filter(ap => ap.estado === 'Disponible' || ap.estado === true);
     } else if (filtro === 'inactivos') {
-      lista = lista.filter(ap => ap.estado === 'Vendido' || ap.estado === false);
+      lista = lista.filter(ap => ap.estado === 'Vendido' || ap.estado === 'Habitado' || ap.estado === false);
     }
 
+    // Ordenar por número de unidad de forma numérica
     return lista.sort((a, b) => 
       (a.unidad || "").toString().localeCompare((b.unidad || "").toString(), undefined, { numeric: true })
     );
@@ -97,7 +119,6 @@ export const getApartamentosPorEdificio = async (edificioId, filtro = 'todos') =
   }
 };
 
-// 🔹 Si decides usar este método en lugar del de inmuebles.services
 export const createApartamento = async (edificioId, data) => {
   return await addDoc(inmueblesRef, {
     ...data,
