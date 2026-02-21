@@ -89,7 +89,7 @@ const Home = () => {
 
               <div className="relative z-10">
                 <h2 className="text-4xl font-black text-white leading-tight tracking-tighter mb-6 uppercase">
-                  Portal de <br /> <span className="text-blue-500">Propietarios</span>
+                  Portal de <br /> <span className="text-blue-500">Residentes</span>
                 </h2>
                 <div className="flex items-center gap-3 text-slate-400 font-black uppercase text-[10px] tracking-[0.2em] group-hover:text-white transition-colors">
                   <span>Acceso al sistema</span>
