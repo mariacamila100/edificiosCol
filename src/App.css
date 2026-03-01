@@ -1,0 +1,13 @@
+/* Estilo para que las imágenes del Hero no pierdan calidad */
+.hero-gradient {
+  background: linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%);
+}
+
+/* Animación suave para las cards del catálogo */
+.card-hover {
+  transition: transform 0.2s ease-in-out, shadow 0.2s ease-in-out;
+}
+
+.card-hover:hover {
+  transform: translateY(-5px);
+}
