@@ -8,31 +8,33 @@ import {
   deleteDoc,
   doc,
   serverTimestamp,
-  query, // 👈 AGREGADO
-  where  // 👈 AGREGADO
+  query,
+  where
 } from 'firebase/firestore';
 
 const inmueblesCollection = collection(db, 'inmuebles');
 
-// --- TUS FUNCIONES ORIGINALES (SE MANTIENEN IGUAL) ---
+// Función auxiliar para subir imágenes (Galería y Logo)
+const uploadFile = async (file, folder) => {
+  if (!file) return null;
+  // Si ya es una URL (porque estamos editando), la devolvemos tal cual
+  if (typeof file === 'string' && (file.startsWith('http') || file.startsWith('blob'))) {
+    return file;
+  }
+  try {
+    const fileName = `${Date.now()}_${file.name?.replace(/\s+/g, '_') || 'img'}`;
+    const storageRef = ref(storage, `${folder}/${fileName}`);
+    const snapshot = await uploadBytes(storageRef, file);
+    return await getDownloadURL(snapshot.ref);
+  } catch (error) {
+    console.error(`Error al subir archivo a ${folder}:`, error);
+    return null;
+  }
+};
 
 const uploadMultipleImages = async (files) => {
   if (!files || !Array.isArray(files) || files.length === 0) return [];
-  const uploadPromises = files.map(async (file) => {
-    if (typeof file === 'string' && (file.startsWith('http') || file.startsWith('blob'))) {
-      return file;
-    }
-    try {
-      const fileName = `${Date.now()}_${file.name?.replace(/\s+/g, '_') || 'img'}`;
-      const storageRef = ref(storage, `inmuebles/${fileName}`);
-      const snapshot = await uploadBytes(storageRef, file);
-      return await getDownloadURL(snapshot.ref);
-    } catch (error) {
-      console.error("Error al subir imagen individual:", error);
-      return null;
-    }
-  });
-  const results = await Promise.all(uploadPromises);
+  const results = await Promise.all(files.map(file => uploadFile(file, 'inmuebles/galeria')));
   return results.filter(url => url !== null);
 };
 
@@ -46,12 +48,17 @@ export const getInmuebles = async () => {
   }
 };
 
-export const createInmueble = async (data, imageFiles) => {
+// 🌟 CORRECCIÓN: Ahora acepta logoFile por separado
+export const createInmueble = async (data, imageFiles, logoFile) => {
   try {
+    // Subir logo y galería
+    const logoUrl = await uploadFile(logoFile, 'inmuebles/portadas');
     const fotosUrls = await uploadMultipleImages(imageFiles);
+
     const cleanData = {
       ...data,
-      edificioId: data.edificioId ? String(data.edificioId) : '',
+      // Forzamos que sea String para que getInmueblesPorEdificio lo encuentre
+      edificioId: String(data.edificioId || ''), 
       precio: Number(data.precio) || 0,
       habitaciones: Number(data.habitaciones) || 0,
       baños: Number(data.baños) || 0,
@@ -61,10 +68,12 @@ export const createInmueble = async (data, imageFiles) => {
       parqueadero: Boolean(data.parqueadero),
       amoblado: Boolean(data.amoblado),
       destacado: Boolean(data.destacado),
-      fotos: fotosUrls, 
+      fotos: fotosUrls,
+      logoUrl: logoUrl, // Guardamos la portada/logo
       fechaPublicacion: serverTimestamp(),
       estado: data.estado || 'Disponible'
     };
+
     return await addDoc(inmueblesCollection, cleanData);
   } catch (error) {
     console.error("Error en createInmueble:", error);
@@ -72,16 +81,22 @@ export const createInmueble = async (data, imageFiles) => {
   }
 };
 
-export const updateInmueble = async (id, data, currentFiles = []) => {
+export const updateInmueble = async (id, data, currentFiles = [], logoFile = null) => {
   try {
     const docRef = doc(db, 'inmuebles', id);
+    
+    // Subir nuevos archivos si existen
+    const logoUrl = logoFile ? await uploadFile(logoFile, 'inmuebles/portadas') : data.logoUrl;
     const fotosUrls = await uploadMultipleImages(currentFiles);
+
     const cleanData = {
       ...data,
-      edificioId: data.edificioId ? String(data.edificioId) : '',
+      edificioId: String(data.edificioId || ''),
       precio: Number(data.precio) || 0,
-      fotos: fotosUrls
+      fotos: fotosUrls,
+      logoUrl: logoUrl
     };
+
     return await updateDoc(docRef, cleanData);
   } catch (error) {
     console.error("Error en updateInmueble:", error);
@@ -99,13 +114,9 @@ export const deleteInmueble = async (id) => {
   }
 };
 
-// --- 🌟 LA FUNCIÓN QUE FALTABA Y CAUSABA EL ERROR 🌟 ---
-
-/**
- * Obtiene solo los inmuebles de un edificio específico
- */
 export const getInmueblesPorEdificio = async (edificioId) => {
   try {
+    // Importante: El ID debe ser String exacto
     const q = query(
       inmueblesCollection, 
       where('edificioId', '==', String(edificioId))
