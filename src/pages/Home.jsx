@@ -41,76 +41,61 @@ const Home = () => {
         </div>
       </nav>
 
-      {/* ================= HERO ================= */}
-      <section className="relative px-6 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-blue-100 rounded-full blur-3xl opacity-40"></div>
+      {/* ================= HERO (CENTRADOS SIN IMAGEN) ================= */}
+      <section className="relative px-6 overflow-hidden bg-white">
+        {/* Fondo decorativo suavizado */}
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-50 rounded-full blur-3xl opacity-60"></div>
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-slate-100 rounded-full blur-3xl opacity-50"></div>
 
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 items-center min-h-[90vh] relative z-10">
+        {/* Flex container para centrar el contenido vertical y horizontalmente */}
+        <div className="max-w-5xl mx-auto flex flex-col items-center justify-center text-center min-h-[85vh] relative z-10 py-20">
 
-          <div className="pr-0 md:pr-16 py-16">
-            <div className="inline-flex items-center gap-2 bg-white text-blue-700 px-4 py-1.5 rounded-full text-xs font-semibold border border-blue-100 shadow-sm mb-8">
-              <Sparkles size={14} />
-              Líderes en el Mercado de Santander
-            </div>
-
-            {/* H1 con Keyword principal */}
-            <h1 className="text-5xl md:text-6xl font-black text-slate-900 tracking-tighter leading-none uppercase italic">
-              GESTIÓN <span className="text-blue-600 not-italic">INMOBILIARIA</span>
-              <br />
-              <span className="text-4xl md:text-5xl">EN BUCARAMANGA</span>
-            </h1>
-
-            <p className="text-slate-600 mt-8 text-lg leading-relaxed max-w-xl">
-              Comercialización y administración estratégica de **bienes raíces en Santander**. 
-              Brindamos blindaje jurídico y análisis de valorización para propietarios e inversionistas.
-            </p>
-
-            <div className="flex flex-wrap gap-4 mt-10">
-              <Link 
-                to="/catalogo"
-                className="bg-blue-600 text-white px-8 py-3.5 rounded-xl text-sm font-black uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg shadow-blue-500/30"
-              >
-                Ver Catálogo de Inmuebles
-                <ArrowRight size={16} />
-              </Link>
-
-              <Link 
-                to="/login"
-                className="bg-white text-slate-900 px-8 py-3.5 rounded-xl text-sm font-black uppercase tracking-widest border border-slate-200 hover:border-slate-400 transition-all"
-              >
-                Portal Residentes
-              </Link>
-            </div>
+          <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-1.5 rounded-full text-xs font-semibold border border-blue-100 shadow-sm mb-8">
+            <Sparkles size={14} />
+            Líderes en el Mercado de Santander
           </div>
 
-          {/* ===== IMAGEN HERO ===== */}
-          <div className="relative h-full flex items-center justify-center">
-            <div className="relative w-full h-[80vh] rounded-[3rem] overflow-hidden shadow-[0_60px_120px_-30px_rgba(0,0,0,0.3)]">
-              <img
-                src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=1400&auto=format&fit=crop"
-                alt="Apartamentos modernos de lujo en venta en Bucaramanga - ImmoPro"
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-blue-900/30 via-transparent to-transparent"></div>
-              
-              <div className="absolute bottom-10 left-10 bg-white/90 backdrop-blur-md px-6 py-4 rounded-2xl shadow-xl">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Proyecto Destacado</p>
-                <p className="text-lg font-black text-slate-900">Exclusividad en Cabecera</p>
-              </div>
-            </div>
+          {/* H1 centrado con Keyword principal */}
+          <h1 className="text-5xl md:text-7xl font-black text-slate-900 tracking-tighter leading-none uppercase italic">
+            GESTIÓN <span className="text-blue-600 not-italic">INMOBILIARIA</span>
+            <br />
+            <span className="text-4xl md:text-6xl">EN BUCARAMANGA</span>
+          </h1>
+
+          <p className="text-slate-600 mt-10 text-xl leading-relaxed max-w-2xl mx-auto">
+            Comercialización y administración estratégica de bienes raíces en Santander. 
+            Brindamos blindaje jurídico y análisis de valorización para propietarios e inversionistas que buscan excelencia y seguridad.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-4 mt-12 w-full sm:w-auto justify-center">
+            <Link 
+              to="/catalogo"
+              className="bg-blue-600 text-white px-10 py-4 rounded-xl text-sm font-black uppercase tracking-widest hover:bg-blue-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/30"
+            >
+              Ver Catálogo de Inmuebles
+              <ArrowRight size={16} />
+            </Link>
+
+            <Link 
+              to="/login"
+              className="bg-white text-slate-900 px-10 py-4 rounded-xl text-sm font-black uppercase tracking-widest border border-slate-200 hover:border-slate-400 transition-all flex items-center justify-center"
+            >
+              Portal Residentes
+            </Link>
           </div>
+
         </div>
       </section>
 
       {/* ================= SERVICIOS (H2 para SEO) ================= */}
-      <section className="relative px-6 py-24">
+      <section className="relative px-6 py-28 bg-slate-50/50">
         <div className="max-w-7xl mx-auto">
-          <div className="mb-16">
+          <div className="mb-16 text-center">
             <h2 className="text-4xl font-black text-slate-900 tracking-tighter leading-none mb-4 uppercase italic">
               Nuestra <span className="text-blue-600 not-italic">Especialidad</span>
             </h2>
-            <p className="text-slate-600 max-w-xl">
-              Ofrecemos soluciones integrales para que vender o arrendar tu propiedad en Santander sea un proceso seguro y rentable.
+            <p className="text-slate-600 max-w-xl mx-auto">
+              Ofrecemos soluciones integrales para que vender o arrendar tu propiedad en Santander sea un proceso seguro, rápido y rentable.
             </p>
           </div>
 
@@ -119,20 +104,20 @@ const Home = () => {
               { 
                 icon: <ShieldCheck size={36} />, 
                 title: "Asesoría Legal", 
-                desc: "Protegemos tu patrimonio con contratos blindados y acompañamiento jurídico en cada trámite." 
+                desc: "Protegemos tu patrimonio con contratos blindados y acompañamiento jurídico especializado en cada trámite." 
               },
               { 
                 icon: <TrendingUp size={36} />, 
                 title: "Mercadeo Eficaz", 
-                desc: "Posicionamos tu inmueble en los portales líderes para asegurar una venta o arriendo rápido." 
+                desc: "Posicionamos tu inmueble en los portales líderes y redes sociales para asegurar un cierre rápido." 
               },
               { 
                 icon: <Star size={36} />, 
                 title: "Gestión Premium", 
-                desc: "Atención personalizada para inversionistas que buscan alta rentabilidad en el mercado local." 
+                desc: "Atención personalizada para propietarios e inversionistas que buscan maximizar la rentabilidad de sus activos." 
               }
             ].map((s, i) => (
-              <div key={i} className="bg-white/80 backdrop-blur-md p-10 rounded-[2rem] border border-white shadow-lg hover:shadow-2xl transition-all hover:-translate-y-2">
+              <div key={i} className="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all hover:-translate-y-2">
                 <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-8">
                   {s.icon}
                 </div>
@@ -154,14 +139,14 @@ const Home = () => {
           <h2 className="text-4xl font-black text-slate-900 uppercase tracking-tight mb-6">
             ¿Buscas vender o arrendar en <span className="text-blue-600">Bucaramanga?</span>
           </h2>
-          <p className="text-slate-600 mb-12">
-            Somos la inmobiliaria líder en Santander. Agenda una asesoría hoy mismo y maximiza el valor de tu propiedad.
+          <p className="text-slate-600 mb-12 text-lg">
+            Somos la inmobiliaria líder en Santander. Agenda una asesoría hoy mismo con nuestros expertos y maximiza el valor de tu propiedad.
           </p>
 
-          <div className="flex flex-col md:flex-row justify-center gap-6">
+          <div className="flex flex-col sm:flex-row justify-center gap-6">
             <a 
               href="tel:+573001234567"
-              className="flex items-center justify-center gap-3 bg-blue-600 text-white px-8 py-4 font-bold uppercase tracking-widest hover:bg-blue-700 transition-all rounded-xl shadow-lg shadow-blue-200"
+              className="flex items-center justify-center gap-3 bg-blue-600 text-white px-8 py-4 font-bold uppercase tracking-widest hover:bg-blue-700 transition-all rounded-xl shadow-lg shadow-blue-200 w-full sm:w-auto"
             >
               <Phone size={18} />
               Llamar a un asesor
@@ -169,7 +154,7 @@ const Home = () => {
 
             <a 
               href="mailto:info@immopro.com"
-              className="flex items-center justify-center gap-3 border border-slate-300 px-8 py-4 font-bold uppercase tracking-widest hover:border-slate-900 transition-all rounded-xl"
+              className="flex items-center justify-center gap-3 border border-slate-300 px-8 py-4 font-bold uppercase tracking-widest hover:border-slate-900 transition-all rounded-xl w-full sm:w-auto"
             >
               <Mail size={18} />
               Solicitar información
