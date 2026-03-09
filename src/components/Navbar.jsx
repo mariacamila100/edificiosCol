@@ -14,6 +14,7 @@ const Navbar = () => {
   const isDashboard =
     location.pathname.includes('/admin') ||
     location.pathname.includes('/panel');
+    
 
   if (isDashboard) return null;
 
